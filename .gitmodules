@@ -1,0 +1,3 @@
+[submodule "SullTec.Common.PowerShell"]
+	path = SullTec.Common.PowerShell
+	url = https://github.com/DrakoTrogdor/SullTec.Common.PowerShell
