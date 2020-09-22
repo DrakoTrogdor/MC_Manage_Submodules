@@ -80,22 +80,22 @@ class BuildType {
 
     InvokeInitBuild([switch]$WhatIF){
         if ($this.HasInitCommand()) { 
-            if ($WhatIF) { Write-Log "$($this.GetInitCommand())" -Title 'WhatIF' }
+            if ($WhatIF) { Write-Console "$($this.GetInitCommand())" -Title 'WhatIF' }
             else { Invoke-Expression $($this.GetInitCommand()) }
         }
     }
     InvokePreBuild([switch]$WhatIF){
         if ($this.HasPreCommand()) { 
-            if ($WhatIF) { Write-Log "$($this.GetPreCommand())" -Title 'WhatIF'}
+            if ($WhatIF) { Write-Console "$($this.GetPreCommand())" -Title 'WhatIF'}
             else { Invoke-Expression $($this.GetPreCommand()) }
         }
     }
     InvokeBuild([switch]$WhatIF){
         if ($this.HasCommand()) { 
-            if ($WhatIF) { Write-Log "$($this.GetCommand())" -Title 'WhatIF'}
+            if ($WhatIF) { Write-Console "$($this.GetCommand())" -Title 'WhatIF'}
             else {
                 [string]$buildCommand = $this.GetCommand()
-                Write-Log "`"$buildCommand`""  -Title 'Executing'
+                Write-Console "`"$buildCommand`""  -Title 'Executing'
                 $currentProcess = Start-Process -FilePath "$env:ComSpec" -ArgumentList "/c $buildCommand" -NoNewWindow -PassThru
                 $currentProcess.WaitForExit()
             }
@@ -103,7 +103,7 @@ class BuildType {
     }
     InvokePostBuild([switch]$WhatIF){
         if ($this.HasPostCommand()) { 
-            if ($WhatIF) { Write-Log "$($this.GetPostCommand())" -Title 'WhatIF' }
+            if ($WhatIF) { Write-Console "$($this.GetPostCommand())" -Title 'WhatIF' }
             else { Invoke-Expression $($this.GetPostCommand()) }
         }
     }
@@ -118,7 +118,7 @@ class BuildType {
         if ($return -match "^1\.16$")             { return '1.16.0' }
 
         [string]$sep = '[' + [System.Text.RegularExpressions.Regex]::Escape('-+') + ']'
-        [string[]]$removables = @('custom','local','snapshot','(alpha|beta|dev|fabric|pre|rc)(\.?\d+)*','\d{2}w\d{2}[a-z]',"v\d{6,}","$ver")
+        [string[]]$removables = @('custom','local','snapshot','(alpha|beta|dev|fabric|pre|rc|arne)(\.?\d+)*','\d{2}w\d{2}[a-z]',"v\d{6,}","$ver")
 		foreach ($item in $removables) {
             [System.Boolean]$matchFound = $false
             do {
@@ -196,7 +196,7 @@ class BuildTypeJava : BuildType {
     }
     InvokeBuild([switch]$WhatIF)    {
         $this.PushJAVA_HOME()
-        Write-Log "`"$($env:JAVA_HOME)`"" -Title 'JAVA_HOME'
+        Write-Console "`"$($env:JAVA_HOME)`"" -Title 'JAVA_HOME'
         ([BuildType]$this).InvokeBuild($WhatIF)
         $this.PopJAVA_HOME()
     }
@@ -211,20 +211,22 @@ class BuildTypeJava : BuildType {
 # Declare Class BuildTypeGradle #
 #################################
 class BuildTypeGradle : BuildTypeJava {
-	BuildTypeGradle() : base('build',$null,$null,$null,'properties','build\libs\*.jar',$true,$null) {}
-	BuildTypeGradle([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[string]$Output,[System.Boolean]$PerformBuild,[string]$JAVA_HOME) : base($Command,$InitCommand,$PreCommand,$PostCommand,$VersionCommand,$Output,$PerformBuild,$JAVA_HOME) {}
+    [string] static $gradlew = 'java "-Dfile.encoding=UTF-8" "-Dsun.stdout.encoding=UTF-8" "-Dsun.stderr.encoding=UTF-8" "-Dorg.gradle.appname=gradlew" -classpath ".\gradle\wrapper\gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain' # -Xmx64m -Xms64m 
+    # Changed the following line to above in order to bypass error issues with batch file incompatibilities. Added UTF-8 encoding to reduce compilation warnings
+    # [string] static $gradlew = '.\gradlew.bat'
+    BuildTypeGradle() : base('build',$null,$null,$null,'properties','build\libs\*.jar',$true,$null) {}
+    BuildTypeGradle([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[string]$Output,[System.Boolean]$PerformBuild,[string]$JAVA_HOME) : base($Command,$InitCommand,$PreCommand,$PostCommand,$VersionCommand,$Output,$PerformBuild,$JAVA_HOME) {}
     BuildTypeGradle([Hashtable]$Value) : base ($Value) {
         if(-not $Value.Contains('Command')) { $this.Command = 'build' }
         if(-not $Value.Contains('VersionCommand')) { $this.VersionCommand = 'properties' }
         if(-not $Value.Contains('Output')) { $this.Output = 'build\libs\*.jar' }
     }
-
-	[string]GetCommand() {
-		[string]$buildCommand = [string]::IsNullOrWhiteSpace($this.Command) ? 'build' : $this.Command
-		return ".\gradlew.bat $buildCommand $($this.UseNewJAVA_HOME ? "-``"Dorg.gradle.java.home``"=``"$($this.GetJAVA_HOME())``"" : '') --no-daemon --quiet --warning-mode=none --console=rich" #-`"Dorg.gradle.logging.level`"=`"quiet`" -`"Dorg.gradle.warning.mode`"=`"none`" -`"Dorg.gradle.console`"=`"rich`"
+    [string]GetCommand() {
+        [string]$buildCommand = [string]::IsNullOrWhiteSpace($this.Command) ? 'build' : $this.Command
+        return "$([BuildTypeGradle]::gradlew) $buildCommand --no-daemon --quiet --warning-mode=none --console=rich" #-`"Dorg.gradle.logging.level`"=`"quiet`" -`"Dorg.gradle.warning.mode`"=`"none`" -`"Dorg.gradle.console`"=`"rich`"
     }
     [string]GetVersion(){ return $this.GetVersion($false) }
-	[string]GetVersion([switch]$RawVersion) {
+    [string]GetVersion([switch]$RawVersion) {
         if([string]::IsNullOrWhiteSpace($this.generatedRawVersion)) {
             [string]$versionCommand = [string]::IsNullOrWhiteSpace($this.VersionCommand) ? 'properties' : $this.VersionCommand
             [string]$return = ''
@@ -233,7 +235,8 @@ class BuildTypeGradle : BuildTypeJava {
             }
             else {
                 $this.CheckGradleInstall()
-                [Object[]]$tempReturn = $tempReturn = (.\gradlew.bat $versionCommand $($this.UseNewJAVA_HOME ? "-`"Dorg.gradle.java.home`"=`"$($this.GetJAVA_HOME())`"" : '') --no-daemon -"Dorg.gradle.logging.level"="quiet" -"Dorg.gradle.warning.mode"="none" -"Dorg.gradle.console"="rich")
+                [Object[]]$tempReturn = $tempReturn = Invoke-Expression -Command "$([BuildTypeGradle]::gradlew) $versionCommand --no-daemon --quiet --warning-mode=none --console=rich"
+                #.\gradlew.bat $versionCommand --no-daemon --quiet --warning-mode=none --console=rich)
                 [string]$tempReturn = $null -eq $tempReturn ? 'ERROR CHECKING VERSION' : [System.String]::Join("`r`n",$tempReturn)
                 if ($tempReturn -imatch '(?:^|\r?\n)(full|build|mod_|project|projectBase)[vV]ersion: (?''version''.*)(?:\r?\n|\z|$)') { $return = $Matches['version'] }
                 elseif ($tempReturn -imatch '(?:^|\r?\n)[vV]ersion: (?''version''.*)(?:\r?\n|\z|$)') { $return = $Matches['version'] }
@@ -270,10 +273,6 @@ class BuildTypeGradle : BuildTypeJava {
         }
     }
 }
-
-################################
-# Declare Class BuildTypeMaven #
-################################
 class BuildTypeMaven : BuildTypeJava {
 	BuildTypeMaven() : base('install',$null,$null,$null,$null,'target\*.jar',$true,$null) {}
 	BuildTypeMaven([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[string]$Output,[System.Boolean]$PerformBuild,[string]$JAVA_HOME) : base($Command,$InitCommand,$PreCommand,$PostCommand,$VersionCommand,$Output,$PerformBuild,$JAVA_HOME) {}
@@ -282,7 +281,6 @@ class BuildTypeMaven : BuildTypeJava {
         if(-not $Value.Contains('VersionCommand')) { $this.VersionCommand = 'project.version' }
         if(-not $Value.Contains('Output')) { $this.Output = 'target\*.jar' }
     }
-
 	[string]GetCommand() {
 		[string]$buildCommand = [string]::IsNullOrWhiteSpace($this.Command) ? 'install' : $this.Command
 		return "mvn $buildCommand -q -U"
@@ -319,10 +317,6 @@ class BuildTypeMaven : BuildTypeJava {
     InvokeBuild([switch]$WhatIF)    { ([BuildTypeJava]$this).InvokeBuild($WhatIF)     }
     InvokePostBuild([switch]$WhatIF){ ([BuildTypeJava]$this).InvokePostBuild($WhatIF) }
 }
-
-##############################
-# Declare Class BuildTypeNPM #
-##############################
 class BuildTypeNPM : BuildType {
     [string]$Name
     [string[]]$Dependancies

@@ -1,5 +1,5 @@
 {
-    "$schema": "http://json-schema.org/schema",
+    "$schema": "http://json-schema.org/draft-07/schema#/properties/$schema/format",
     "$id": "https://drakotrogdor.com/schemas/manage.schema.json",
     "title": "Submodule Manager Config",
     "description": "Declares configuration settings for the PowerShell Git Submodule Manager script (manage.ps1)",
@@ -52,14 +52,38 @@
                 "JAVA_HOME":      { "type": "integer" }
             }
         },
+        "typeRemoteRepo": {
+            "URL":            { "type": "string"  },
+            "DefaultBranch":  { "type": "string"  },
+            "IgnoreBranches": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": { "type": "string" },
+                "additionalItems": false
+            }
+        },
         "typeGitRepo":{
             "type":"object",
             "additionalProperties": false,
             "properties": {
-                "Name":   { "type": "string"  },
-                "Origin": { "type": "string"  },
-                "Branch": { "type": "string"  },
-                "Pull":   { "type": "boolean" },
+                "Name":           { "type": "string"  },
+                "Origin":         { "type": "string"  },
+                "Branch":         { "type": "string"  },
+                "Pull":           { "type": "boolean" },
+                "LockAtCommit":   { "type": "string"  },
+                "Upstream":       {"$ref": "#/definitions/typeRemoteRepo"},
+                "AlternateRepos": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/definitions/typeRemoteRepo"},
+                    "additionalItems": false
+                },
+                "BranchIgnore":{
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": { "type": "string" },
+                    "additionalItems": false
+                },
                 "SubModules":{
                     "type": "array",
                     "uniqueItems": true,

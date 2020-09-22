@@ -85,39 +85,50 @@ class SourceSubModule {
 	[string]GetFinalName() {
 		if ([string]::IsNullOrWhiteSpace($this.FinalName)){ return $this.Name }
 		else { return $this.FinalName }
-	}
-    [System.Boolean] hidden SafeCopy([string]$Source,[string]$Destination,[switch]$WhatIF,[switch]$Compare){
+    }
+    [string] hidden RelativePath([string]$Parent,[string]$Child){
+        if([string]::IsNullOrWhiteSpace($Parent) -or [string]::IsNullOrWhiteSpace($Child)) { return ''}
+        else {
+            [string]$return = '.' + ($Child -replace [RegEx]::Escape($Parent),'')
+            return $return
+        }
+    }
+    [System.Boolean] hidden SafeCopy([string]$Source,[string]$Destination,[string]$Root,[switch]$WhatIF,[switch]$Compare){
         if ([string]::IsNullOrWhiteSpace($Source)){
-            Write-Log "Source file is empty."
+            Write-Console "Source file is empty."
             return $false
         }
         if ([string]::IsNullOrWhiteSpace($Destination)) {
-            Write-Log "Destination file is empty."
+            Write-Console "Destination file is empty."
             return $false
         }
+        [string]$relativeSource = $this.RelativePath($Root, $Source)
+        [string]$relativeDestination = $this.RelativePath($Root, $Destination)
         if ($Compare -and ($null -eq (Compare-Object -ReferenceObject (Get-Content -Path $Source) -DifferenceObject (Get-Content -Path $Destination)))) {
-            Write-Log "`"^fG$Source^fz`" and `"^fG$Destination^fz`" are identical."
+            Write-Console "`"^fG$relativeSource^fz`" and `"^fG$relativeDestination^fz`" are identical."
             return $false
         }
         else {
-            Write-Log "`"$Source`" to `"$Destination`"..." -Title 'Copying'
+            Write-Console "`"$relativeSource`" to `"$relativeDestination`"..." -Title 'Copying'
             try {
-                if ($WhatIF) { Write-Log "Copy-Item -Path $Source -Destination $Destination -Force" -Title 'WhatIF'}
+                if ($WhatIF) { Write-Console "Copy-Item -Path $relativeSource -Destination $relativeDestination -Force" -Title 'WhatIF'}
                 else { Copy-Item -Path $Source -Destination $Destination -Force }
-                Write-Log "`"^fg$Source^fz`" to `"^fg$Destination^fz`"." -Title "Copied"
+                Write-Console "`"^fg$relativeSource^fz`" to `"^fg$relativeDestination^fz`"." -Title "Copied"
                 return $true
             }
             catch {
-                Write-Log "^frCopying file `"$Source`" to `"$Destination`".^fz" -Title 'Error'
+                Write-Console "^frCopying file `"$relativeSource`" to `"$relativeDestination`".^fz" -Title 'Error'
                 return $false
             }
         }
+    }
+    DisplayHeader(){
+        Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $($this.RelativePath($script:dirRoot,(Get-Location)))`r`n$('=' * 120)" -ForegroundColor red
     }
     InvokeClean(
         [string]$PathSource
     ){
         $dirCurrentSource = Join-Path -Path $PathSource -ChildPath $this.Name
-        #Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $dirCurrentSource`r`n$('=' * 120)" -ForegroundColor red
         Write-Host "Cleaning $($this.GetFinalName())"
         Set-Location -Path $dirCurrentSource
         $this.Repo.InvokeClean()
@@ -137,8 +148,8 @@ class SourceSubModule {
         [string]$updatedFile = $null
         $dirCurrentSource = Join-Path -Path $PathSource -ChildPath $this.Name
 
-        Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $dirCurrentSource`r`n$('=' * 120)" -ForegroundColor red
         Set-Location -Path $dirCurrentSource
+        $this.DisplayHeader()
 
         if ($PerformCleanAndPull) {
             $this.Repo.InvokeClean($true)
@@ -176,10 +187,10 @@ class SourceSubModule {
         [string]$copyToFileFullName = Join-Path -Path $copyToFilePath -ChildPath $copyToFileName
 
         # Show current values before checking if a build is required
-        $this.Repo.Display($false)
-        Write-Log "$($this.Build.GetOutput())" -Title 'Output'
-        Write-Log "$version" -Title 'Version'
-        Write-Log "$copyToFileFullName" -Title 'Copy To'
+        $this.Repo.Display()
+        Write-Console "$version" -Title 'Version'
+        Write-Console "`"$($this.RelativePath($PathServer, $(Join-Path -Path $dirCurrentSource -ChildPath $($this.Build.GetOutput()))))`"" -Title 'Copy From'
+        Write-Console "`"$($this.RelativePath($PathServer, $copyToFileFullName))`"" -Title 'Copy To'
 
         if ($this.Build.PerformBuild) {
             [string]$copyToExistingFilter = '^' + [System.Text.RegularExpressions.Regex]::Escape($copyToFileName) + '(\.disabled|\.backup)*$'
@@ -188,7 +199,7 @@ class SourceSubModule {
             switch ($this.SubModuleType) {
                 Script {
                     [string]$copyFromFileName = Join-Path -Path $dirCurrentSource -ChildPath ($this.Build.GetOutput())
-                    if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$WhatIF,$true)) { $updatedFile = $copyToFileFullName }
+                    if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$PathServer,$WhatIF,$true)) { $updatedFile = $copyToFileFullName }
                     break
                 }
                 Other {
@@ -207,21 +218,21 @@ class SourceSubModule {
                             $renameOldFileFilter = [System.Text.RegularExpressions.Regex]::Escape("$($this.GetFinalName())-") + '.*\-CUSTOM\+.*' + [System.Text.RegularExpressions.Regex]::Escape($this.Build.GetOutputExtension()) + '$'
                             $renameOldFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $renameOldFileFilter }
                             foreach ($renameOldFile in $renameOldFiles) {
-                                Write-Log "`"$($renameOldFile.FullName)`" to `"$($renameOldFile.FullName)^fE.disabled^fz`"" -Title 'Renaming'
-                                if ($WhatIF) { Write-Log "Rename-Item -Path `"$($renameOldFile.FullName)`" -NewName `"$($renameOldFile.FullName).disabled`" -Force -EA:0" -Title 'WhatIF'}
+                                Write-Console "`"$($this.RelativePath($PathServer, $renameOldFile.FullName))`" to `"$($this.RelativePath($PathServer, $renameOldFile.FullName))^fE.disabled^fz`"" -Title 'Renaming'
+                                if ($WhatIF) { Write-Console "Rename-Item -Path `"$($this.RelativePath($PathServer, $renameOldFile.FullName))`" -NewName `"$($this.RelativePath($PathServer, $renameOldFile.FullName)).disabled`" -Force -EA:0" -Title 'WhatIF'}
                                 else { Rename-Item -Path "$($renameOldFile.FullName)" -NewName "$($renameOldFile.FullName).disabled" -Force -EA:0 }
                             }
                             [string]$copyFromFileFullName = ($WhatIF ? '<buildOutputFile>' : $copyFromExistingFiles.FullName)
-                            if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$WhatIF,$false)) { $updatedFile = $copyToFileFullName }
+                            if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$PathServer,$WhatIF,$false)) { $updatedFile = $copyToFileFullName }
                             $this.Build.InvokePostBuild($WhatIF)
                         }
-                        else { Write-Log "^frNo build output file `"$copyFromExistingFiles`" found." -Title 'Error' }
+                        else { Write-Console "^frNo build output file `"$copyFromExistingFiles`" found." -Title 'Error' }
                     }
-                    else { Write-Log "`"^fG$(($copyToExistingFiles|Select-Object -First 1).FullName)^fz`" is already up to date." }
+                    else { Write-Console "`"^fG$($this.RelativePath($PathServer, ($copyToExistingFiles|Select-Object -First 1).FullName))^fz`" is already up to date." }
                 }
             }
         }
-        else { Write-Log "^fMBuilding of this submodule is currently disabled.^fz" }
+        else { Write-Console "^fMBuilding of this submodule is currently disabled.^fz" }
         return $updatedFile
     }
 }
