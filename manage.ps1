@@ -231,7 +231,7 @@ $dirResourcePacks = Join-Path -Path $dirRoot -ChildPath .minecraft -AdditionalCh
 [SourceSubModule[]]$sources = @()
 
 ## Load configuration and submodule hashtables from manage.json
-LoadManageJSON -JsonContentPath "$dirRoot\manage.json" -JsonSchemaPath "$PSScriptRoot\manage.schema.json"
+LoadManageJSON -JsonContentPath "$dirRoot\manage.json" -JsonSchemaPath "$scriptPath\manage.schema.json"
 
 ## Load script configuration values from hashtable
 LoadConfiguration -ConfigurationData $script:ManageJSON.configuration
