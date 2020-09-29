@@ -31,11 +31,11 @@ class SourceSubModule {
         $this.Build = $Build
         $this.FinalName = $FinalName
     }
-	SourceSubModule([string]$Name, [SubModuleType]$SubModuleType, [GitRepo]$Repo, [BuildType]$Build) {
-		$this.Init($Name, $SubModuleType, $Repo, $Build, $null)
-	}
-	SourceSubModule ([string]$Name, [SubModuleType]$SubModuleType, [GitRepo]$Repo, [BuildType]$Build, [string]$FinalName) {
-		$this.Init($Name, $SubModuleType, $Repo, $Build, $FinalName)
+    SourceSubModule() {
+       $this.Init('', [SubModuleType]::Other, [GitRepo]::new(), [BuildType]::new(), $null)
+    }
+    SourceSubModule ([string]$Name, [SubModuleType]$SubModuleType, [GitRepo]$Repo, [BuildType]$Build, [string]$FinalName) {
+        $this.Init($Name, $SubModuleType, $Repo, $Build, $FinalName)
     }
     SourceSubModule([Hashtable]$Value) {
         # Set the Name string

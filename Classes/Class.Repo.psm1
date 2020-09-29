@@ -1,117 +1,128 @@
+############################
+# Declare Class RemoteRepo #
+############################
+class RemoteRepo {
+    [string]$Name
+    [string]$URL
+    [string]$Branch
+    [string]$Commit
+    [bool]$Detatched
+    [string[]]$IgnoreBranches
+    [void] hidden Init ([string]$Name, [string]$URL, [string]$Branch, [string]$Commit, [bool]$Detatched, [string[]]$IgnoreBranches) {
+        $this.Name           = [string]::IsNullOrWhiteSpace($Name)          ? 'origin'      : $Name
+        $this.URL            = [string]::IsNullOrWhiteSpace($URL)           ? ''            : $URL
+        $this.Branch         = [string]::IsNullOrWhiteSpace($Branch)        ? 'master'      : $Branch
+        $this.Commit         = [string]::IsNullOrWhiteSpace($Commit)        ? 'master'      : $Commit
+        $this.Detatched      = $null -eq $Detatched                         ? $false        : $Detatched
+        $this.IgnoreBranches = $null -eq $IgnoreBranches                    ? [string[]]@() : $IgnoreBranches
+    }
+    RemoteRepo() { $this.Init($null, $null, $null, $null, $false, $null) }
+    RemoteRepo([string]$Name, [string]$URL, [string]$Branch, [string]$Commit, [bool]$Detatched, [string[]]$IgnoreBranches) {
+        $this.Init($Name, $URL, $Branch, $Commit, $Detatched, $IgnoreBranches)
+    }
+    RemoteRepo([Hashtable]$Value) {
+        [string]$tmpName    = $Value.Contains('Name')                 ? [string]$Value.Name       : $null
+        [string]$tmpURL     = $Value.Contains('URL')                  ? [string]$Value.URL        : $null
+        [string]$tmpBranch  = $Value.Contains('Branch')               ? [string]$Value.Branch     : $null
+        [string]$tmpCommit  = $Value.Contains('Commit')               ? [string]$Value.Commit     : $null
+        [bool]$tmpDetatched = $Value.Contains('Detatched')            ? [string]$Value.Detatched  : $false
+        [Collections.Generic.List[string]]$tmpIgnoreBranches = [Collections.Generic.List[string]]::new()
+        if ($Value.Contains('IgnoreBranches')){
+            foreach ($branch in $Value.IgnoreBranches) {
+                $tmpIgnoreBranches.Add([string]::new([string]$branch))
+            }
+        }
+        $this.Init($tmpName, $tmpURL, $tmpBranch, $tmpCommit, $tmpDetatched, $tmpIgnoreBranches.ToArray())
+    }
+}
 #########################
 # Declare Class GitRepo #
 #########################
 class GitRepo {
     [string]$Name
-    [string]$Origin
-    [string]$Branch
+    [RemoteRepo[]]$RemoteRepos
     [string]$LockAtCommit
-    [System.Boolean]$Pull
+    [bool]$Pull
     [GitRepo[]]$SubModules
-    [string[]]$BranchIgnore
     [string[]]$ArchiveAdditions
     [string[]]$CleanAdditions
     [string[]]$CleanExceptions
     [void] hidden Init (
         [string]$Name,
-        [string]$Origin,
-        [string]$Branch,
+        [RemoteRepo[]]$RemoteRepos,
         [string]$LockAtCommit,
-        [System.Boolean]$Pull,
-        [string[]]$BranchIgnore,
+        [bool]$Pull,
         [GitRepo[]]$SubModules,
         [string[]]$ArchiveAdditions,
         [string[]]$CleanAdditions,
         [string[]]$CleanExceptions
     ){
-        if ([string]::IsNullOrWhiteSpace($Name) -and -not [string]::IsNullOrWhiteSpace($Origin)) {
-            $this.Name = (Split-Path -Path $Origin -Leaf) -replace '^(.*)\.git$', '$1'
-            $this.Origin = $Origin
-        }
-        elseif ([string]::IsNullOrWhiteSpace($Origin) -and -not [string]::IsNullOrWhiteSpace($Name)) {
-            $this.Name = $Name
-            $this.Origin = "$($script:myGit_URL)/$Name" }
-        else {
-            $this.Name = $Name
-            $this.Origin = $Origin
-        }
-        $this.Branch           = if ([string]::IsNullOrWhiteSpace($Branch))       { 'master' } else { $Branch       }
-        $this.LockAtCommit     = if ([string]::IsNullOrWhiteSpace($LockAtCommit)) { $null    } else { $LockAtCommit }
-        $this.Pull             = if ($null -eq $Pull)             { $true          } else { $Pull             }
-        $this.SubModules       = if ($null -eq $SubModules)       { [GitRepo[]]@() } else { $SubModules       }
-        $this.BranchIgnore     = if ($null -eq $BranchIgnore)     { [string[]]@()  } else { $BranchIgnore     }
-        $this.ArchiveAdditions = if ($null -eq $ArchiveAdditions) { [string[]]@()  } else { $ArchiveAdditions }
-        $this.CleanAdditions   = if ($null -eq $CleanAdditions)   { [string[]]@()  } else { $CleanAdditions   }
-        $this.CleanExceptions  = if ($null -eq $CleanExceptions)  { [string[]]@()  } else { $CleanExceptions  }
+        $this.Name             = [string]::IsNullOrWhiteSpace($Name)         ? ''                : $Name
+        $this.RemoteRepos      = $null -ne $RemoteRepos                      ? [RemoteRepo[]]@() : $RemoteRepos
+        $this.LockAtCommit     = [string]::IsNullOrWhiteSpace($LockAtCommit) ? $null             : $LockAtCommit
+        $this.Pull             = $null -eq $Pull                             ? $true             : $Pull
+        $this.SubModules       = $null -eq $SubModules                       ? [GitRepo[]]@()    : $SubModules
+        $this.ArchiveAdditions = $null -eq $ArchiveAdditions                 ? [string[]]@()     : $ArchiveAdditions
+        $this.CleanAdditions   = $null -eq $CleanAdditions                   ? [string[]]@()     : $CleanAdditions
+        $this.CleanExceptions  = $null -eq $CleanExceptions                  ? [string[]]@()     : $CleanExceptions
     }
-    GitRepo() { $this.init($null, $null,   'master', $true, [string[]]@(), [GitRepo[]]@()), [string[]]@(), [string[]]@(), [string[]]@() }
+    GitRepo() { $this.init($null, [RemoteRepo[]]@(), $null, $true, [GitRepo[]]@()), [string[]]@(), [string[]]@(), [string[]]@() }
     GitRepo([Hashtable]$Value) {
-        $tmpName        = $Value.Contains('Name')           ? [string]$Value.Name          : $null
-        $tmpOrigin      = $Value.Contains('Origin')         ? [string]$Value.Origin        : $null
-        $tmpBranch      = $Value.Contains('Branch')         ? [string]$Value.Branch        : 'master'
-        $tmpPull        = $Value.Contains('Pull')           ? [System.Boolean]$Value.Pull  : $true
-        $tmpLockAtCommit  = $Value.Contains('LockAtCommit') ? [string]$Value.LockAtCommit  : $null
-        $tmpSubModules =  [GitRepo[]]@()
-        $tmpBranchIgnore = [string[]]@()
-        if ($Value.Contains('BranchIgnore')){
-            foreach ($item in $Value.BranchIgnore){
-                $tmpBranchIgnore += [string]$item
+        $tmpName                                             = $Value.Contains('Name')                       ? [string]$Value.Name          : $null
+        [bool]$tmpPull                                       = $Value.Contains('Pull')                       ? [bool]$Value.Pull  : $true
+        [string]$tmpLockAtCommit                             = $Value.Contains('LockAtCommit')               ? [string]$Value.LockAtCommit  : $null
+        [Collections.Generic.List[RemoteRepo]]$tmpRemoteRepo = [Collections.Generic.List[RemoteRepo]]::new()
+        if ($Value.Contains('Remotes')){
+            foreach ($remote in $Value.RemoteRepos) {
+                $tmpRemoteRepo.Add([RemoteRepo]::new([Hashtable]$remote))
             }
-            
         }
+        [Collections.Generic.List[GitRepo]]$tmpSubModules    = [Collections.Generic.List[GitRepo]]::new()
         if ($Value.Contains('SubModules')){
-            foreach ($submodule in $Value.SubModules){
-                $tmpSubModules += [GitRepo]::new([Hashtable]$submodule)
+            foreach ($submodule in $Value.SubModules) {
+                $tmpSubModules.Add([GitRepo]::new([Hashtable]$submodule))
             }
-            
         }
-        $tmpArchiveAdditions = [string[]]@()
-        if ($Value.Contains('ArchiveAdditions')){
+        [Collections.Generic.List[string]]$tmpArchiveAdditions = [Collections.Generic.List[string]]::new()
+        if ($Value.Contains('ArchiveAdditions')) {
             foreach ($item in $Value.ArchiveAdditions){
-                $tmpArchiveAdditions += [string]$item
+                $tmpArchiveAdditions.Add([string]$item)
             }
-            
         }
-        $tmpCleanAdditions = [string[]]@()
-        if ($Value.Contains('CleanAdditions')){
-            foreach ($item in $Value.CleanAdditions){
-                $tmpCleanAdditions += [string]$item
+        [Collections.Generic.List[string]]$tmpCleanAdditions = [Collections.Generic.List[string]]::new()
+        if ($Value.Contains('CleanAdditions')) {
+            foreach ($item in $Value.CleanAdditions) {
+                $tmpCleanAdditions.Add([string]$item)
             }
-            
         }
-        $tmpCleanExceptions = [string[]]@()
-        if ($Value.Contains('CleanExceptions')){
-            foreach ($item in $Value.CleanExceptions){
-                $tmpCleanExceptions += [string]$item
+        [Collections.Generic.List[string]]$tmpCleanExceptions = [Collections.Generic.List[string]]::new()
+        if ($Value.Contains('CleanExceptions')) {
+            foreach ($item in $Value.CleanExceptions) {
+                $tmpCleanExceptions.Add([string]$item)
             }
-            
         }
-        $this.Init($tmpName, $tmpOrigin, $tmpBranch, $tmpLockAtCommit, $tmpPull, $tmpBranchIgnore, $tmpSubModules, $tmpArchiveAdditions, $tmpCleanAdditions, $tmpCleanExceptions)
+        $this.Init($tmpName, $tmpRemoteRepo.ToArray(), $tmpLockAtCommit, $tmpPull, $tmpSubModules.ToArray(), $tmpArchiveAdditions.ToArray(), $tmpCleanAdditions.ToArray(), $tmpCleanExceptions.ToArray())
     }
-    [string]GetUpstream() {
+<#     [string]GetCurrentUpstream() {
         [string]$return = (git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}') 2>&1
         if ($return -like 'fatal: * does not point to a branch') { $return = 'DETATCHED' }
         return $return
     }
-    [string]GetRemote() {
-        [string]$return = $this.GetUpstream() -replace '/.*$',''
+    [string]GetCurrentRemote() {
+        [string]$return = $this.GetCurrentUpstream() -replace '/.*$',''
         return $return
     }
-    [string]GetURL() {
-        [string]$remote = $this.GetRemote()
+    [string]GetCurrentURL() {
+        [string]$remote = $this.GetCurrentRemote()
         if ($remote -ne 'DETATCHED' -and [string]::IsNullOrWhiteSpace($this.LockAtCommit)) {
-            [string]$return = $this.GetURL($remote)
+            [string]$return = $this.GetOtherURL($remote)
         }
         else {
-            [string]$return = $this.Origin
+            [string]$return = $this.RemoteRepo.Origin.URL
         }
         return $return
     }
-    [string]GetURL([string]$remote) {
-        [string]$return = (git config --get remote.$remote.url)
-        return $return
-    }
-    [string]GetBranch() {
+    [string]GetCurrentBranch() {
         [string[]]$Value = (git branch)
         [string]$return = ( $Value | Select-String -Pattern '(^\* (?''match''.*)$)' | Select-Object -First 1 | ForEach-Object {
             $_.matches.groups | Where-Object {
@@ -124,34 +135,114 @@ class GitRepo {
     [string]GetCommit(){
         [string]$return = (git rev-parse --short=7 HEAD)
         return $return
+    } #>
+    [bool]IsLockedAtCommit() { return -not [string]::IsNullOrWhiteSpace($this.LockAtCommit) }
+    [RemoteRepo]GetConfiguredOrigin() {
+        [RemoteRepo]$return = $this.RemoteRepos.Origin
+        $return.Commit = (git rev-parse --short=7 refs/remotes/$($return.Name)/$($return.Branch))
+        return $return
     }
-    [string]CheckConfigRemote([System.Boolean]$InColor){
-        [string]$reportedRemote = $this.GetRemote()
-        if ($reportedRemote -like 'origin') { $reportedRemote += " ($($InColor ? '^fgSame^fz' : 'Same'))" } else { $reportedRemote += " (" + ($InColor ? "^frChanged from `"origin`"^fz" : "Changed from `"origin`"") + ")" }
-        return $reportedRemote
+    [RemoteRepo]GetConfiguredUpstream() {
+        [RemoteRepo]$return = $this.RemoteRepos.Upstream
+        $return.Commit = (git rev-parse --short=7 refs/remotes/$($return.Name)/$($return.Branch))
+        return $return
     }
-    [string]CheckConfigRemote() { return CheckConfigURL($false) }
-    [string]CheckConfigURL([System.Boolean]$InColor){
-        [string]$reportedURL = $this.GetURL()
-        if ($reportedURL -like $this.Origin) { $reportedURL += " ($($InColor ? '^fgSame^fz' : 'Same'))" } else { $reportedURL += " (" + ($InColor ? "^frChanged from `"" + $this.Origin + "`"^fz" : "Changed from `"" + $this.Origin + "`"") + ")" }
-        return $reportedURL
+    [RemoteRepo]GetConfiguredOther([string]$Name) {
+        [RemoteRepo]$return = $this.RemoteRepos.$Name
+        $return.Commit = (git rev-parse --short=7 refs/remotes/$($return.Name)/$($return.Branch))
+        return $return
     }
-    [string]CheckConfigURL() { return CheckConfigURL($false) }
+    [RemoteRepo]GetLocalHead() { 
+        [RemoteRepo]$return = [RemoteRepo]::new()
+        # Set the Name
+        $return.Name = 'HEAD'
 
-    [string]CheckConfigBranch([System.Boolean]$InColor){
-        [string]$reportedBranch = $this.GetBranch()
-        if ($reportedBranch -like $this.Branch) { $reportedBranch += " ($($InColor ? '^fgSame^fz' : 'Same'))" } else { $reportedBranch += " (" + ($InColor ? "^frChanged from `"" + $this.Branch + "`"^fz" : "Changed from `"" + $this.Branch + "`"") + ")" } #" (Same)" } else { $reportedBranch += " (Changed from `"$($this.Branch)`")" }
-        return $reportedBranch
-    }
-    [string]CheckConfigBranch() { return CheckConfigBranch($false) }
-    [void]CompareAheadBehind() {
-        [string]$upstream = $this.GetUpstream()
-        if ($upstream -ne 'DETATCHED' -and [string]::IsNullOrWhiteSpace($this.LockAtCommit)) { [string]$local = $this.GetBranch() }
-        elseif($upstream -eq 'DETATCHED' -and -not [string]::IsNullOrWhiteSpace($this.LockAtCommit)) { [string]$local = $this.LockAtCommit }
-        else { 
-            $this.InvokeCheckout()
-            [string]$local = $this.GetBranch()
+        # Set the Commit
+        if ($this.IsLockedAtCommit()) { $return.Commit = $this.LockAtCommit             }
+        else                          { $return.Commit = (git rev-parse --short=7 HEAD) }
+
+        # Set the Branch
+        $return.Branch = (git branch --show-current)
+        if ([string]::IsNullOrEmpty($return.Branch)) {
+            $return.Branch = "DETATCHED - $($return.Commit)"
+            $return.Detatched = $true
         }
+        else {
+            $return.Detatched = $false
+        }
+
+        # Set the URL
+        if ($return.Detatched) {
+            $return.URL = $this.GetURL($this.RemoteRepo.Origin.Name)
+        }
+        else {
+            [string]$symbolicFullName = (git rev-parse --abbrev-ref --symbolic-full-name HEAD)
+            [string]$branchRemote = (git config --get branch.$($symbolicFullName).remote)
+            $return.URL = $this.GetURL($branchRemote)
+        }
+
+        return $return
+    }
+    [RemoteRepo]GetLocalUpstream() { 
+        [RemoteRepo]$return = [RemoteRepo]::new()
+        # Set the Name
+        [string]$symbolicFullName = (git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}') 2>&1 # @{upstream} is short for HEAD@{upstream}
+        if ($symbolicFullName -like 'fatal: * does not point to a branch') {
+            $return.Name = 'DETATCHED'
+            $return.Detatched = $true
+        }
+        else {
+            $return.Name = $symbolicFullName -replace '/.*$',''
+            $return.Detatched = $false
+        }
+
+        # Set the Commit
+        if ($return.Detatched) { $return.Commit = (git rev-parse --short=7 HEAD)          }
+        else                   { $return.Commit = (git rev-parse --short=7 '@{upstream}') }
+
+        # Set the Branch
+        if ($return.Detatched) { $return.Branch = "DETATCHED - $($return.Commit)"}
+        else                   { $return.Branch = $symbolicFullName -replace '^[^/]*/',''}
+
+        # Set the URL
+        $return.URL = $this.GetURL($this.RemoteRepo.Origin.Name)
+        $return.URL = $this.GetURL($return.Name)
+
+        return $return
+    }
+    [RemoteRepo]GetLocalOther([string]$Name) {
+        [RemoteRepo]$return = [RemoteRepo]::new()
+        $return.Name = (git config --get branch.$($Name).remote)
+        $return.URL = $this.GetURL($return.Name)
+        $return.Branch = $Name
+        $return.Commit = (git rev-parse --short=7 refs/heads/$Name)
+        return $return
+    }
+    [string]GetURL([string]$RemoteName) {
+        return [string](git config --get remote.$RemoteName.url)
+    }
+    [string]CheckConfigRemote(){
+        [RemoteRepo]$localRepo = $this.GetLocal()
+        [RemoteRepo]$defaultRepo = $this.GetOrigin()
+        return $localRepo.Name + ($localRepo.Name -like $defaultRepo.Name ?  " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.Name + "`"^fz)")
+    }
+    [string]CheckConfigURL(){
+        [RemoteRepo]$localRepo = $this.GetLocal()
+        [RemoteRepo]$defaultRepo = $this.GetOrigin()
+        return $localRepo.URL + ($localRepo.URL -like $defaultRepo.URL ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.URL + "`"^fz)")
+    }
+
+    [string]CheckConfigBranch(){
+        [RemoteRepo]$localRepo = $this.GetLocal()
+        [RemoteRepo]$defaultRepo = $this.GetOrigin()
+        return $localRepo.Branch + ($localRepo.Branch -like $defaultRepo.Branch ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.Branch + "`"^fz)")
+    }
+    [void]CompareAheadBehind() {
+        [RemoteRepo]$configOrigin = $this.GetConfiguredOrigin()
+        [RemoteRepo]$configUpstream = $this.GetConfiguredUpstream()
+        [RemoteRepo]$localHead = $this.GetLocalHead()
+        [RemoteRepo]$localUpstream = $this.GetLocalUpstream()
+        if (-not ($localHead.Name -eq 'DETATCHED' -or $this.IsLockedAtCommit())) { $this.InvokeCheckout() }
         [string[]]$remotes = (git remote)
         foreach ($remote in $remotes) {
             ### TODO: Add check for deleted repositories ####
@@ -277,12 +368,12 @@ class GitRepo {
     [void]InvokeCheckout() {
         $this.Display()
         if ([string]::IsNullOrWhiteSpace($this.LockAtCommit)) {
-            [string]$reportedBranch = $this.GetBranch()
+            [string]$reportedBranch = $this.GetCurrentBranch()
             [string]$returnBranch = if ($this.Branch -eq $reportedBranch){ $this.Branch }
             elseif (YesOrNo -Prompt "Do you want to swtich from branch `"$($reportedBranch)`" to `"$($this.Branch)`"") { $this.Branch }
             else { $reportedBranch }
             git checkout -B $($returnBranch) --force
-            [string]$remote=$this.GetRemote()
+            [string]$remote=$this.GetCurrentRemote()
             if ($remote -eq 'DETATCHED') { $remote = 'origin' }
             git branch --set-upstream-to=$remote/$returnBranch $returnBranch
             git fetch --force $remote
@@ -291,12 +382,12 @@ class GitRepo {
     }
     [void]InvokeReset() {
         $this.Display()
-        [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $this.GetUpstream() : $this.LockAtCommit
+        [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $this.GetCurrentUpstream() : $this.LockAtCommit
         if ($upstream -eq 'DETATCHED') { $upstream = 'origin' }
         if ($script:WhatIF) { Write-Console "git reset --hard $upstream --recurse-submodules" -Title 'WhatIF' }
         else { git reset --hard "$upstream" --recurse-submodules }
     }
-    [void]InvokeClean([System.Boolean]$Quiet) {
+    [void]InvokeClean([bool]$Quiet) {
         if ($Quiet) { Write-Console -Value "Cleaning..." -Title "Action" } else { $this.Display() }
         [string[]]$cleanArguments = @('clean')
         $cleanArguments += ($script:WhatIF ? '-nxfd' : '-xfd')
@@ -309,7 +400,7 @@ class GitRepo {
         }
     }
     [void]InvokeClean() { $this.InvokeClean($false) }
-    [void]InvokePull([System.Boolean]$Quiet) {
+    [void]InvokePull([bool]$Quiet) {
         if ($this.Pull) {
             if ($Quiet) { Write-Console -Value "Pulling..." -Title "Action" } else { $this.Display() }
             if ($script:WhatIF -and -not $script:ForcePull) { Write-Console "git pull" -Title 'WhatIF' }

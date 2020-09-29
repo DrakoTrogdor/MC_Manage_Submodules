@@ -67,22 +67,19 @@
             "additionalProperties": false,
             "properties": {
                 "Name":           { "type": "string"  },
-                "Origin":         { "type": "string"  },
-                "Branch":         { "type": "string"  },
                 "Pull":           { "type": "boolean" },
                 "LockAtCommit":   { "type": "string"  },
-                "Upstream":       {"$ref": "#/definitions/typeRemoteRepo"},
-                "AlternateRepos": {
-                    "type": "array",
-                    "uniqueItems": true,
-                    "items": {"$ref": "#/definitions/typeRemoteRepo"},
-                    "additionalItems": false
-                },
-                "BranchIgnore":{
-                    "type": "array",
-                    "uniqueItems": true,
-                    "items": { "type": "string" },
-                    "additionalItems": false
+                "Remotes":        {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [ "Origin" ],
+                    "properties": {
+                        "Origin": { "$ref": "#/definitions/typeRemoteRepo"},
+                        "Upstream": { "$ref": "#/definitions/typeRemoteRepo"}
+                    },
+                    "patternProperties": {
+                        "^[a-zA-Z0-9]+$": { "$ref": "#/definitions/typeRemoteRepo"}
+                    }
                 },
                 "SubModules":{
                     "type": "array",
