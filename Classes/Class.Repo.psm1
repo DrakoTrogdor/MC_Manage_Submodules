@@ -235,18 +235,18 @@ class GitRepo {
     }
     [string]GetURL([string]$RemoteName) { return [string](git config --get remote.$RemoteName.url) }
     [string]CheckConfigRemote(){
-        [RemoteRepo]$localRepo = $this.GetLocal()
-        [RemoteRepo]$defaultRepo = $this.GetOrigin()
+        [RemoteRepo]$localRepo = $this.GetLocalHead()
+        [RemoteRepo]$defaultRepo = $this.GetConfiguredOrigin()
         return $localRepo.Name + ($localRepo.Name -like $defaultRepo.Name ?  " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.Name + "`"^fz)")
     }
     [string]CheckConfigURL(){
-        [RemoteRepo]$localRepo = $this.GetLocal()
-        [RemoteRepo]$defaultRepo = $this.GetOrigin()
+        [RemoteRepo]$localRepo = $this.GetLocalHead()
+        [RemoteRepo]$defaultRepo = $this.GetConfiguredOrigin()
         return $localRepo.URL + ($localRepo.URL -like $defaultRepo.URL ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.URL + "`"^fz)")
     }
     [string]CheckConfigBranch(){
-        [RemoteRepo]$localRepo = $this.GetLocal()
-        [RemoteRepo]$defaultRepo = $this.GetOrigin()
+        [RemoteRepo]$localRepo = $this.GetLocalHead()
+        [RemoteRepo]$defaultRepo = $this.GetConfiguredOrigin()
         return $localRepo.Branch + ($localRepo.Branch -like $defaultRepo.Branch ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.Branch + "`"^fz)")
     }
     [void]CompareAheadBehind() {
