@@ -228,9 +228,8 @@ class GitRepo {
 
         if (-not $return.Detatched) {
             [RemoteRepo]$configuredRepo = $this.GetConfiguredByName($return.Name)
-            if ($null -ne $configuredRepo) {
-                $return.IgnoreBranches = $configuredRepo.IgnoreBranches
-            }
+            if ($null -ne $configuredRepo) { $return.IgnoreBranches = $configuredRepo.IgnoreBranches }
+
         }
         $return.InitializeBranches()
         return $return
@@ -250,9 +249,7 @@ class GitRepo {
                 $repo.DefaultBranch = (git symbolic-ref refs/remotes/$remote/HEAD) -replace "refs/remotes/$remote/",''
 
                 [RemoteRepo]$configuredRepo = $this.GetConfiguredByName($remote)
-                if ($null -ne $configuredRepo) {
-                    $return.IgnoreBranches = $configuredRepo.IgnoreBranches
-                }
+                if ($null -ne $configuredRepo) { $repo.IgnoreBranches = $configuredRepo.IgnoreBranches }
                 $repo.InitializeBranches()
                 $return.Add($repo)
             }
