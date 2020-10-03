@@ -449,12 +449,12 @@ class GitRepo {
             [string]$returnBranch = if ($defaultBranch -eq $reportedBranch)                                                                      { $defaultBranch }
                                     elseif (YesOrNo -Prompt "Do you want to swtich from branch `"$($reportedBranch)`" to `"$($defaultBranch)`"") { $defaultBranch }
                                     else                                                                                                         { $reportedBranch }
-            git checkout -B $($returnBranch) --force
+            git checkout -B $($returnBranch) --force --quiet
             [string]$remote = (git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}') 2>&1
             if ($remote -like 'fatal: * does not point to a branch') { $remote = $defaultBranch.Name }
             else { $remote = $remote -replace '/.*$', '' }
             git branch --set-upstream-to=$remote/$returnBranch $returnBranch
-            git fetch --force $remote
+            git fetch --force $remote --quiet
         }
         else { (git checkout "$($this.LockAtCommit)") }
     }
