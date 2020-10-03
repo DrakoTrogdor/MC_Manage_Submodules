@@ -221,11 +221,17 @@ class GitRepo {
             $return.DefaultBranch = "DETATCHED - $($return.Commit)"
             $return.URL = $this.GetURL($this.GetConfiguredByName('origin').Name)
         }
-        else                   {
+        else {
             $return.DefaultBranch = $symbolicFullName -replace '^[^/]*/',''
             $return.URL = $this.GetURL($return.Name)
         }
 
+        if (-not $return.Detatched) {
+            [RemoteRepo]$configuredRepo = $this.GetConfiguredByName($return.Name)
+            if ($null -ne $configuredRepo) {
+                $return.IgnoreBranches = $configuredRepo.IgnoreBranches
+            }
+        }
         $return.InitializeBranches()
         return $return
     }
@@ -242,6 +248,11 @@ class GitRepo {
                 $repo.Name = $remote
                 $repo.URL = $this.GetURL($remote)
                 $repo.DefaultBranch = (git symbolic-ref refs/remotes/$remote/HEAD) -replace "refs/remotes/$remote/",''
+
+                [RemoteRepo]$configuredRepo = $this.GetConfiguredByName($remote)
+                if ($null -ne $configuredRepo) {
+                    $return.IgnoreBranches = $configuredRepo.IgnoreBranches
+                }
                 $repo.InitializeBranches()
                 $return.Add($repo)
             }
@@ -354,7 +365,8 @@ class GitRepo {
         }
         [int]$longest=0
         foreach ($branch in [BranchDetails[]]$branches) {
-            if (([string]$branch.Branch).Length -gt $longest) { $longest = ([string]$branch.Branch).Length }
+            [string]$branchName = $branch.Branch -replace 'refs/(?:heads|remotes)/',''
+            if ($branchName.Length -gt $longest) { $longest = $branchName.Length }
         }
         Write-Console " Bnd | Ahd  - $('Branch A'.PadLeft($longest,' ')) --- $('Branch B'.PadRight($longest,' '))`t LastCmt --- LastCmt" -Title 'Compare'
         [DateTime]$now = Get-Date

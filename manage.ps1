@@ -50,7 +50,7 @@ using module $scriptPath\Classes\Class.SourceSubModule.psm1
 "@
 $dynamicUsing = [ScriptBlock]::Create($dynamicUsingBlock)
 . $dynamicUsing
-Import-Module (Join-Path -Path $scriptPath -ChildPath 'SullTec.Common.PowerShell' -AdditionalChildPath 'SullTec.Common.psd1')
+Import-Module (Join-Path -Path $scriptPath -ChildPath 'SullTec.Common.PowerShell' -AdditionalChildPath 'SullTec.Common.psd1') -Force
 
 #####################
 # Declare Functions #
@@ -208,6 +208,17 @@ $dirResourcePacks = Join-Path -Path $dirRoot -ChildPath .minecraft -AdditionalCh
 ## Blank [SourceSubModule] array
 [SourceSubModule[]]$sources = @()
 
+## ExitScript for Show-Choices
+$exitScript = [ScriptBlock]::Create(@"
+    Write-Host "Removing unused Modules..."
+    Remove-Module Class.BuildType -Force
+    Remove-Module Class.Repo -Force
+    Remove-Module Class.SourceSubModule -Force
+    Remove-Module Function.common -Force
+    Remove-Module SullTec.Common -Force
+"@)
+
+
 ## Load configuration and submodule hashtables from manage.json
 LoadManageJSON -JsonContentPath "$dirRoot\manage.json" -JsonSchemaPath "$scriptPath\manage.schema.json"
 
@@ -216,6 +227,7 @@ LoadConfiguration -ConfigurationData $script:ManageJSON.configuration
 
 ## Load submodules from hashtable
 LoadSourceSubModules -SubmodulesData $script:ManageJSON.submodules -SourcesArray ([ref]$sources)
+
 
 do { # Main loop
     Clear-Host
@@ -238,7 +250,7 @@ do { # Main loop
         'Configuration - Toggle WhatIF',
         'Configuration - Toggle ForcePull'
     )
-	$choice = Show-Choices -Title 'Select an action' -List $menuItems -NoSort -ExitPath $dirStartup
+	$choice = Show-Choices -Title 'Select an action' -List $menuItems -NoSort -ExitPath $dirStartup -ExitScript $exitScript
 	switch ($choice) {
         'Repositories - Initialize'{
             Push-Location -Path $dirSources -StackName 'MainLoop'
