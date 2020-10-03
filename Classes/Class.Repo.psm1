@@ -21,9 +21,9 @@ class RemoteRepo {
     [bool]$Detatched
     [string[]]$IgnoreBranches
     [void] hidden Init ([string]$Name, [string]$URL, [string]$DefaultBranch, [bool]$Detatched, [string[]]$IgnoreBranches) {
-        $this.Name           = [string]::IsNullOrWhiteSpace($Name)          ? 'origin'      : $Name
+        $this.Name           = [string]::IsNullOrWhiteSpace($Name)          ? 'origin'      : ( $Name -ilike 'origin' ? 'origin' : $Name )
         $this.URL            = [string]::IsNullOrWhiteSpace($URL)           ? ''            : $URL
-        $this.DefaultBranch  = [string]::IsNullOrWhiteSpace($DefaultBranch) ? 'master'      : $DefaultBranch
+        $this.DefaultBranch  = [string]::IsNullOrWhiteSpace($DefaultBranch) ? 'master'      : ( $DefaultBranch -ilike 'master' ? 'master' : $DefaultBranch )
         $this.Detatched      = $null -eq $Detatched                         ? $false        : $Detatched
         $this.IgnoreBranches = $null -eq $IgnoreBranches                    ? [string[]]@() : $IgnoreBranches
     }
@@ -42,10 +42,24 @@ class RemoteRepo {
         }
         $this.Init($tmpName, $tmpURL, $tmpDefaultBranch, $tmpDetatched, $tmpIgnoreBranches.ToArray())
     }
+    RemoteRepo([System.Collections.DictionaryEntry]$Value) {
+        [string]$tmpName          = $Value.Key
+        [hashtable]$tmpValue      = $Value.Value
+        [string]$tmpURL           = $tmpValue.Contains('URL')                  ? [string]$tmpValue.URL           : $null
+        [string]$tmpDefaultBranch = $tmpValue.Contains('DefaultBranch')        ? [string]$tmpValue.DefaultBranch : $null
+        [bool]$tmpDetatched       = $tmpValue.Contains('Detatched')            ? [string]$tmpValue.Detatched     : $false
+        [Collections.Generic.List[string]]$tmpIgnoreBranches = [Collections.Generic.List[string]]::new()
+        if ($tmpValue.Contains('IgnoreBranches')){
+            foreach ($branch in $tmpValue.IgnoreBranches) {
+                $tmpIgnoreBranches.Add([string]::new([string]$branch))
+            }
+        }
+        $this.Init($tmpName, $tmpURL, $tmpDefaultBranch, $tmpDetatched, $tmpIgnoreBranches.ToArray())
+    }
     [void]InitializeBranches() {
         [System.Collections.Generic.List[BranchDetails]]$tmpBranches = [System.Collections.Generic.List[BranchDetails]]::new()
         if ($this.Name -eq 'HEAD' -or $this.Name -eq 'DETATCHED') {
-            if (((git rev-list HEAD -n 1 --date=unix --abbrev-commit --pretty=format:"%cd") -join "`r`n") -match '(?ms)(?:^commit (?<commit>[a-f0-9]+)\s*(?:(?<time>\d+))$)' ) {
+            if (((git rev-list HEAD -n 1 --date=unix --pretty=format:"%cd") -join "`r`n") -match '(?ms)(?:^commit (?<commit>[a-f0-9]+)\s*(?:(?<time>\d+))$)' ) {
                 $tmpBranches.Add([BranchDetails]::new($this.Name, $Matches.commit, $Matches.time))
             }
             else { $tmpBranches.Add([BranchDetails]::new($this.Name, '', '')) }
@@ -55,11 +69,11 @@ class RemoteRepo {
             if ($branchIgnoreRegex -eq '.*().*') { $branchIgnoreRegex = '^$' }
             [string[]]$lsRemoteHeads = git ls-remote --heads $this.Name
             foreach ($item in $lsRemoteHeads) {
-                if ($item -match '^(?<commit>[a-fA-F0-9]+)\h+refs/heads/(?<branch>.*)$') {
+                if ($item -match '^(?<commit>[a-fA-F0-9]+)\s+refs/heads/(?<branch>.*)$') {
                     [string]$tmpBranch = $Matches.branch
                     [string]$tmpCommit = $Matches.commit
                     if ($tmpBranch -notmatch $branchIgnoreRegex) {
-                        if (((git rev-list $tmpCommit -n 1 --date=unix --abbrev-commit --pretty=format:"%cd") -join "`r`n") -match '(?ms)(?:^commit (?<commit>[a-f0-9]+)\s*(?:(?<time>\d+))$)' ) {
+                        if (((git rev-list $tmpCommit -n 1 --date=unix --pretty=format:"%cd") -join "`r`n") -match '(?ms)(?:^commit (?<commit>[a-f0-9]+)\s*(?:(?<time>\d+))$)' ) {
                             $tmpBranches.Add([BranchDetails]::new($tmpBranch, $tmpCommit, $Matches.time))
                         }
                         else { $tmpBranches.Add([BranchDetails]::new($tmpBranch, $tmpCommit, '')) }
@@ -93,7 +107,7 @@ class GitRepo {
         [string[]]$CleanExceptions
     ){
         $this.Name             = [string]::IsNullOrWhiteSpace($Name)         ? ''                : $Name
-        $this.RemoteRepos      = $null -ne $RemoteRepos                      ? [RemoteRepo[]]@() : $RemoteRepos
+        $this.RemoteRepos      = $null -eq $RemoteRepos                      ? [RemoteRepo[]]@() : $RemoteRepos
         $this.LockAtCommit     = [string]::IsNullOrWhiteSpace($LockAtCommit) ? $null             : $LockAtCommit
         $this.Pull             = $null -eq $Pull                             ? $true             : $Pull
         $this.SubModules       = $null -eq $SubModules                       ? [GitRepo[]]@()    : $SubModules
@@ -108,8 +122,8 @@ class GitRepo {
         [string]$tmpLockAtCommit                             = $Value.Contains('LockAtCommit')               ? [string]$Value.LockAtCommit  : $null
         [Collections.Generic.List[RemoteRepo]]$tmpRemoteRepo = [Collections.Generic.List[RemoteRepo]]::new()
         if ($Value.Contains('Remotes')){
-            foreach ($remote in $Value.RemoteRepos) {
-                $tmpRemoteRepo.Add([RemoteRepo]::new([Hashtable]$remote))
+            foreach ($remote in $Value.Remotes.GetEnumerator()) {
+                $tmpRemoteRepo.Add([RemoteRepo]::new([System.Collections.DictionaryEntry]$remote))
             }
         }
         [Collections.Generic.List[GitRepo]]$tmpSubModules    = [Collections.Generic.List[GitRepo]]::new()
@@ -142,19 +156,25 @@ class GitRepo {
 
     # (git rev-parse --short=7 refs/remotes/$Remote/$Branch)
     # (git rev-parse --short=7 refs/heads/$Branch)
-    [RemoteRepo]GetConfiguredOrigin() { [RemoteRepo]$return = $this.RemoteRepos.Origin; $return.InitializeBranches(); return $return }
-    [RemoteRepo]GetConfiguredUpstream() { [RemoteRepo]$return = $this.RemoteRepos.Upstream; $return.InitializeBranches(); return $return }
+    [RemoteRepo]GetConfiguredOrigin() { return $this.GetConfiguredByName('Origin') }
+    [RemoteRepo]GetConfiguredUpstream() { return $this.GetConfiguredByName('Upstream') }
     [RemoteRepo[]]GetConfiguredOthers() {
         [System.Collections.Generic.List[RemoteRepo]]$return = [System.Collections.Generic.List[RemoteRepo]]::new()
         foreach ($repo in $this.RemoteRepos) {
-            if ($repo -isnot $this.RemoteRepos.Origin -and $repo -isnot $this.RemoteRepos.Upstream) {
+            if ($repo -ne $this.GetConfiguredOrigin() -and $repo -ne $this.GetConfiguredUpstream()) {
                 $repo.InitializeBranches()
                 $return.Add($repo)
             }
         }
         return $return.ToArray()
     }
-    [RemoteRepo]GetConfiguredByName([string]$Name) { [RemoteRepo]$return = $this.RemoteRepos.$Name; $return.InitializeBranches(); return $return }
+    [RemoteRepo]GetConfiguredByName([string]$Name) {
+        [RemoteRepo]$return = $this.RemoteRepos |
+            Where-Object { $_.Name -like $Name } |
+            Select-Object -First 1
+        if ($null -ne $return) { $return.InitializeBranches() }
+        return $return
+    }
     [RemoteRepo]GetLocalHead() { 
         [RemoteRepo]$return = [RemoteRepo]::new()
         # Set the Name
@@ -172,7 +192,7 @@ class GitRepo {
 
         # Set the URL
         if ($return.Detatched) {
-            $return.URL = $this.GetURL($this.RemoteRepo.Origin.Name)
+            $return.URL = $this.GetURL($this.GetConfiguredByName('origin').Name)
         }
         else {
             [string]$symbolicFullName = (git rev-parse --abbrev-ref --symbolic-full-name HEAD)
@@ -196,30 +216,32 @@ class GitRepo {
             $return.Detatched = $false
         }
 
-        # Set the Default Branch
-        if ($return.Detatched) { $return.DefaultBranch = "DETATCHED - $($return.Commit)"}
-        else                   { $return.DefaultBranch = $symbolicFullName -replace '^[^/]*/',''}
-
-        # Set the URL
-        $return.URL = $this.GetURL($this.RemoteRepo.Origin.Name)
-        $return.URL = $this.GetURL($return.Name)
+        # Set the Default Branch and URL
+        if ($return.Detatched) {
+            $return.DefaultBranch = "DETATCHED - $($return.Commit)"
+            $return.URL = $this.GetURL($this.GetConfiguredByName('origin').Name)
+        }
+        else                   {
+            $return.DefaultBranch = $symbolicFullName -replace '^[^/]*/',''
+            $return.URL = $this.GetURL($return.Name)
+        }
 
         $return.InitializeBranches()
         return $return
     }
     [RemoteRepo[]]GetLocalOthers() {
         [System.Collections.Generic.List[RemoteRepo]]$return = [System.Collections.Generic.List[RemoteRepo]]::new()
-        [string]$headBranch = (git rev-parse --symbolic-full-name HEAD)
+        [string]$headBranch = (git rev-parse --symbolic-full-name HEAD) -replace 'refs/heads/',''
         [string[]]$remotes = (git remote)
         foreach ($remote in $remotes) {
             $remote = $remote.Trim()
-            [string]$tmpThisBranch = (git config --get branch.$remote.merge)
-            if ($tmpThisBranch -ne $headBranch) {
+            $defaultBranch = (git symbolic-ref refs/remotes/$remote/HEAD) -replace "refs/remotes/$remote/",''
+            if ($defaultBranch -ne $headBranch) {
                 [RemoteRepo]$repo = [RemoteRepo]::new()
                 git fetch $remote
                 $repo.Name = $remote
                 $repo.URL = $this.GetURL($remote)
-                $repo.DefaultBranch = $tmpThisBranch -replace 'refs/heads/',''
+                $repo.DefaultBranch = (git symbolic-ref refs/remotes/$remote/HEAD) -replace "refs/remotes/$remote/",''
                 $repo.InitializeBranches()
                 $return.Add($repo)
             }
@@ -234,21 +256,6 @@ class GitRepo {
         return $return
     }
     [string]GetURL([string]$RemoteName) { return [string](git config --get remote.$RemoteName.url) }
-    [string]CheckConfigRemote(){
-        [RemoteRepo]$localRepo = $this.GetLocalHead()
-        [RemoteRepo]$defaultRepo = $this.GetConfiguredOrigin()
-        return $localRepo.Name + ($localRepo.Name -like $defaultRepo.Name ?  " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.Name + "`"^fz)")
-    }
-    [string]CheckConfigURL(){
-        [RemoteRepo]$localRepo = $this.GetLocalHead()
-        [RemoteRepo]$defaultRepo = $this.GetConfiguredOrigin()
-        return $localRepo.URL + ($localRepo.URL -like $defaultRepo.URL ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.URL + "`"^fz)")
-    }
-    [string]CheckConfigBranch(){
-        [RemoteRepo]$localRepo = $this.GetLocalHead()
-        [RemoteRepo]$defaultRepo = $this.GetConfiguredOrigin()
-        return $localRepo.Branch + ($localRepo.Branch -like $defaultRepo.Branch ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.Branch + "`"^fz)")
-    }
     [void]CompareAheadBehind() {
         # Invoke a checkout (will checkout the commit if locked at commit)
         $this.InvokeCheckout()
@@ -263,28 +270,34 @@ class GitRepo {
         ## Local HEAD
         [RemoteRepo]$currentRepo = $this.GetLocalHead()
         foreach ($branch in [BranchDetails[]]$currentRepo.Branches) {
-            if ($currentRepo.Detatched -or $this.IsLockedAtCommit) { $branch.Branch = $branch.Commit }
-            else { $branch.Branch = "refs/heads/$($branch.Branch)" }
+            if ($currentRepo.Detatched -or $this.IsLockedAtCommit()) { $branch.Branch = $branch.Commit }
+            else { $branch.Branch = "refs/heads/$(git branch --show-current)" }
             if ($null -eq $localHead) { $localHead = $branch }
             $branches.Add($branch)
         }
 
-        ## Configured Origin
+        ## Configured Origin set as remoteOrigin if one has not been set already
         $currentRepo = $this.GetConfiguredOrigin()
         foreach ($branch in [BranchDetails[]]$currentRepo.Branches) {
+            [string]$branchName = $branch.Branch
             $branch.Branch = "refs/remotes/$($currentRepo.Name)/$($branch.Branch)"
-            if ($null -eq $remoteOrigin) { $remoteOrigin = $branch }
-            $branches.Add($branch)
+            if ($null -eq $remoteOrigin -and $branchName -like $currentRepo.DefaultBranch ) {
+                $branch.Comment = 'Set from Configured Origin'
+                $remoteOrigin = $branch
+            }
+            if ($branches -notcontains $branch) { $branches.Add($branch) }
         }
 
-        ## Local Upstream (Origin)
+        ## Local Upstream (Origin) set as remoteOrigin if one has not been set already
         $currentRepo = $this.GetLocalUpstream()
         foreach ($branch in [BranchDetails[]]$currentRepo.Branches) {
+            [string]$branchName = $branch.Branch
             $branch.Branch = "refs/remotes/$($currentRepo.Name)/$($branch.Branch)"
-            if ($branch -ne $remoteOrigin) {
-                $branch.Comment = "Changed from $($remoteOrigin.Branch)"
-                $branches.Add($branch)
+            if ($null -eq $remoteOrigin -and $branchName -like $currentRepo.DefaultBranch ) {
+                $branch.Comment = 'Set from Local Upstream'
+                $remoteOrigin = $branch
             }
+            if ($branches -notcontains $branch) { $branches.Add($branch) }
         }
 
         ## Local Remote Upstream
@@ -313,13 +326,15 @@ class GitRepo {
         [PSCustomObject[]]$compareAheadBehind = @()
         foreach ($branchA in $branches) {
             foreach ($branchB in $branches) {
-                #if ($branchB -eq $branchA) { continue }
-                #if ($compareAheadBehind.Where({$_.Left -eq $branchB -and $_.Right -eq $branchA})) { continue }
+                if ($branchB -eq $branchA) { continue } # Skip over comparing a branch to itself
+
+                # Skip over commits that have already been compared.
+                if ($compareAheadBehind.Where({$_.Left.Commit -eq $branchA.Commit -and $_.Right.Commit -eq $branchB.Commit})) { continue }
+                if ($compareAheadBehind.Where({$_.Left.Commit -eq $branchB.Commit -and $_.Right.Commit -eq $branchA.Commit})) { continue }
+
                 ### TODO: Add check for when local = origin fetch/push, therefore don't redo origin and others
                 # Double quotes is required around the entire "A...B" in order to parse properly
                 if ((git rev-list --left-right --count "$($branchA.Branch)...$($branchB.Branch)") -match '^\s*(?<ahead>\d+)\s+(?<behind>\d+)\s*$') {
-                    [string]$left = $branchA
-                    [string]$right = $branchB
                     [string]$ahead = $Matches.ahead
                     [string]$behind = $Matches.behind
                     $compareAheadBehind += [PSCustomObject]@{
@@ -338,18 +353,22 @@ class GitRepo {
             }
         }
         [int]$longest=0
-        $branches.ForEach({if (([string]$_).Length -gt $longest) {$longest = ([string]$_).Length}})
+        foreach ($branch in [BranchDetails[]]$branches) {
+            if (([string]$branch.Branch).Length -gt $longest) { $longest = ([string]$branch.Branch).Length }
+        }
         Write-Console " Bnd | Ahd  - $('Branch A'.PadLeft($longest,' ')) --- $('Branch B'.PadRight($longest,' '))`t LastCmt --- LastCmt" -Title 'Compare'
         [DateTime]$now = Get-Date
         [DateTime]$stale = (Get-Date).AddDays(-90)
+        [string]$local = $localHead.Branch -replace 'refs/(?:heads|remotes)/',''
+        [string]$upstream = $remoteOrigin.Branch -replace 'refs/(?:heads|remotes)/',''
         $compareAheadBehind |
         #Sort-Object Left,Right |
         ForEach-Object {
-            [string]$left = $_.Left
-            [string]$right = $_.Right
+            [string]$left = $_.Left.Branch -replace 'refs/(?:heads|remotes)/',''
+            [string]$right = $_.Right.Branch -replace 'refs/(?:heads|remotes)/',''
 
-            [DateTime]$leftTime      = $branchCommits.$($left).Time
-            [DateTime]$rightTime     = $branchCommits.$($right).Time
+            [DateTime]$leftTime      = $_.Left.Time
+            [DateTime]$rightTime     = $_.Right.Time
 
             if (($left -eq $local) -or ($leftTime -gt $stale -and $rightTime -gt $stale)) {
 
@@ -376,11 +395,19 @@ class GitRepo {
         }
     }
     [void]Display(){
+        [RemoteRepo]$localRepo    = $this.GetLocalHead()
+        [RemoteRepo]$upstreamRepo = $this.GetLocalUpstream()
+        [RemoteRepo]$defaultRepo  = $this.GetConfiguredOrigin()
+        [string]$compareRemotes   = $upstreamRepo.Name + ($upstreamRepo.Name -like $defaultRepo.Name ?  " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.Name + "`"^fz)")
+        [string]$compareURLs      = $upstreamRepo.URL + ($upstreamRepo.URL -like $defaultRepo.URL ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.URL + "`"^fz)")
+        [string]$compareBranches  = $localRepo.DefaultBranch + ($localRepo.DefaultBranch -like $defaultRepo.DefaultBranch ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.DefaultBranch + "`"^fz)")
+        [string]$commit           = git rev-parse --short=7 HEAD
+
         #if ($ShowName) { Write-Color "^fM$($this.Name)^fz" }
-        Write-Console "$($this.CheckConfigRemote())" -Title 'Remote'
-        Write-Console "$($this.CheckConfigURL())" -Title 'URL'
-        Write-Console "$($this.CheckConfigBranch())" -Title 'Branch'
-        Write-Console "$($this.GetCommit())" -Title 'Commit'
+        Write-Console "$compareRemotes" -Title 'Remote'
+        Write-Console "$compareURLs" -Title 'URL'
+        Write-Console "$compareBranches" -Title 'Branch'
+        Write-Console "$commit" -Title 'Commit'
     }
     [void]InvokeInitialize() {
         if ((Get-ChildItem).Count -eq 0) {
@@ -404,13 +431,19 @@ class GitRepo {
     [void]InvokeCheckout() {
         $this.Display()
         if ([string]::IsNullOrWhiteSpace($this.LockAtCommit)) {
-            [string]$reportedBranch = $this.GetCurrentBranch()
-            [string]$returnBranch = if ($this.Branch -eq $reportedBranch){ $this.Branch }
-            elseif (YesOrNo -Prompt "Do you want to swtich from branch `"$($reportedBranch)`" to `"$($this.Branch)`"") { $this.Branch }
-            else { $reportedBranch }
+            [string]$reportedBranch = (git branch --show-current)
+            if ([string]::IsNullOrEmpty($reportedBranch)) { $reportedBranch = "DETATCHED - $(git rev-parse --short=7 HEAD)" }
+
+            [RemoteRepo]$defaultRepo  = $this.GetConfiguredOrigin()
+
+            [string]$defaultBranch = $defaultRepo.DefaultBranch
+            [string]$returnBranch = if ($defaultBranch -eq $reportedBranch)                                                                      { $defaultBranch }
+                                    elseif (YesOrNo -Prompt "Do you want to swtich from branch `"$($reportedBranch)`" to `"$($defaultBranch)`"") { $defaultBranch }
+                                    else                                                                                                         { $reportedBranch }
             git checkout -B $($returnBranch) --force
-            [string]$remote=$this.GetCurrentRemote()
-            if ($remote -eq 'DETATCHED') { $remote = 'origin' }
+            [string]$remote = (git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}') 2>&1
+            if ($remote -like 'fatal: * does not point to a branch') { $remote = $defaultBranch.Name }
+            else { $remote = $remote -replace '/.*$', '' }
             git branch --set-upstream-to=$remote/$returnBranch $returnBranch
             git fetch --force $remote
         }
