@@ -462,7 +462,8 @@ class GitRepo {
     }
     [void]InvokeReset() {
         $this.Display()
-        [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $this.GetCurrentUpstream() : $this.LockAtCommit
+        $remoteOrigin = $this.GetConfiguredOrigin().Name
+        [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $remoteOrigin.Name : $this.LockAtCommit
         if ($upstream -eq 'DETATCHED') { $upstream = 'origin' }
         if ($script:WhatIF) { Write-Console "git reset --hard $upstream --recurse-submodules" -Title 'WhatIF' }
         else { git reset --hard "$upstream" --recurse-submodules }
