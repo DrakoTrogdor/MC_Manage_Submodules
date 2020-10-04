@@ -342,7 +342,8 @@ class GitRepo {
 
                 ### TODO: Add check for when local = origin fetch/push, therefore don't redo origin and others
                 # Double quotes is required around the entire "A...B" in order to parse properly
-                if ((git rev-list --left-right --count "$($branchA.Branch)...$($branchB.Branch)") -match '^\s*(?<ahead>\d+)\s+(?<behind>\d+)\s*$') {
+                [string]$compareAandB = (git rev-list --left-right --count "$($branchA.Branch)...$($branchB.Branch)" -- ) 2> $null
+                if ($compareAandB -match '^\s*(?<ahead>\d+)\s+(?<behind>\d+)\s*$') {
                     [string]$ahead = $Matches.ahead
                     [string]$behind = $Matches.behind
                     $compareAheadBehind += [PSCustomObject]@{
@@ -403,6 +404,7 @@ class GitRepo {
             }
         }
     }
+    [string]GetCommit() { return (git rev-parse --short=7 HEAD) 2>$null }
     [void]Display(){
         [RemoteRepo]$localRepo    = $this.GetLocalHead()
         [RemoteRepo]$upstreamRepo = $this.GetLocalUpstream()
@@ -410,7 +412,7 @@ class GitRepo {
         [string]$compareRemotes   = $upstreamRepo.Name + ($upstreamRepo.Name -like $defaultRepo.Name ?  " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.Name + "`"^fz)")
         [string]$compareURLs      = $upstreamRepo.URL + ($upstreamRepo.URL -like $defaultRepo.URL ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.URL + "`"^fz)")
         [string]$compareBranches  = $localRepo.DefaultBranch + ($localRepo.DefaultBranch -like $defaultRepo.DefaultBranch ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.DefaultBranch + "`"^fz)")
-        [string]$commit           = git rev-parse --short=7 HEAD
+        [string]$commit           = $this.GetCommit()
 
         #if ($ShowName) { Write-Color "^fM$($this.Name)^fz" }
         Write-Console "$compareRemotes" -Title 'Remote'
