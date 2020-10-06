@@ -468,6 +468,26 @@ class GitRepo {
         if ($script:WhatIF) { Write-Console "git reset --hard $upstream --recurse-submodules" -Title 'WhatIF' }
         else { git reset --hard "$upstream" --recurse-submodules }
     }
+    [void]InvokeRepair() {
+        $this.Display()
+        $remoteOrigin = $this.GetConfiguredOrigin().Name
+        [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $remoteOrigin.Name : $this.LockAtCommit
+        if ($upstream -eq 'DETATCHED') { $upstream = 'origin' }
+        if ($script:WhatIF) {
+            Write-Console "git fsck --full --strict" -Title 'WhatIF'
+            Write-Console "git prune" -Title 'WhatIF'
+            Write-Console "git reflog expire --expire=now --all" -Title 'WhatIF'
+            Write-Console "git repack -ad" -Title 'WhatIF'
+            Write-Console "git prune" -Title 'WhatIF'
+        }
+        else {
+            git fsck --full --strict
+            git prune
+            git reflog expire --expire=now --all
+            git repack -ad
+            git prune
+        }
+    }
     [void]InvokeClean([bool]$Quiet) {
         if ($Quiet) { Write-Console -Value "Cleaning..." -Title "Action" } else { $this.Display() }
         [string[]]$cleanArguments = @('clean')

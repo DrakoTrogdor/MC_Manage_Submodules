@@ -242,6 +242,7 @@ do { # Main loop
         'Repositories - Checkout',
         'Repositories - Clean',
         'Repositories - Reset',
+        'Repositories - Repair',
         'Build - Get Versions',
         'Build - Compile One',
         'Build - Compile All',
@@ -359,6 +360,34 @@ do { # Main loop
                 Set-Location -Path $dirCurrent
                 $currentSource.DisplayHeader()
                 $currentSource.Repo.InvokeReset()
+            }
+            PressAnyKey
+            break
+        }
+        'Repositories - Repair' {
+            Push-Location -Path $dirRoot -StackName 'MainLoop'
+            Write-Host "Repairing Root Folder"
+            if ($script:WhatIF) {
+                Write-Console "git fsck --full --strict" -Title 'WhatIF'
+                Write-Console "git prune" -Title 'WhatIF'
+                Write-Console "git reflog expire --expire=now --all" -Title 'WhatIF'
+                Write-Console "git repack -ad" -Title 'WhatIF'
+                Write-Console "git prune" -Title 'WhatIF'
+            }
+            else {
+                git fsck --full --strict
+                git prune
+                git reflog expire --expire=now --all
+                git repack -ad
+                git prune
+            }
+            Set-Location -Path $dirSources
+            Write-Host "Repair Repositories"
+            foreach ($currentSource in $sources) {
+                $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
+                Set-Location -Path $dirCurrent
+                $currentSource.DisplayHeader()
+                $currentSource.Repo.InvokeRepair()
             }
             PressAnyKey
             break
