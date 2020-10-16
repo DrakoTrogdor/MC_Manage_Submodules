@@ -305,21 +305,24 @@ do { # Main loop
                 $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
 
-                # Display current Repo Header
+
+                # Display current Source/Repo Header
+                $currentSource.DisplayHeader()
                 $currentSource.Repo.Display()
 
                 # Clean Individual Source
-                $currentSource.Repo.InvokeClean()
+                $currentSource.Repo.InvokeClean($true)
 
                 # Reset Individual Source
-                $currentSource.Repo.InvokeReset()
+                $currentSource.Repo.InvokeReset($true)
 
                 # Repair/Prune Individual Source
-                $currentSource.Repo.InvokeRepair()
+                $currentSource.Repo.InvokeRepair($true)
 
             }
 
             Set-Location -Path $dirRoot
+            Write-Console -Value "Commiting all changes...." -Title "Info"
             git add -A
             [string]$commitTime = Get-Date -Format "dddd, MMMM dd, yyyy 'at' HH:mm K"
             git commit -m "Auto-update: $commitTime"

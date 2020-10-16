@@ -460,16 +460,17 @@ class GitRepo {
         }
         else { (git checkout "$($this.LockAtCommit)") }
     }
-    [void]InvokeReset() {
-        $this.Display()
+    [void]InvokeReset([bool]$Quiet) {
+        if ($Quiet) { Write-Console -Value "Resetting..." -Title "Action" } else { $this.Display() }
         $remoteOrigin = $this.GetConfiguredOrigin().Name
         [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $remoteOrigin.Name : $this.LockAtCommit
         if ($upstream -eq 'DETATCHED') { $upstream = 'origin' }
         if ($script:WhatIF) { Write-Console "git reset --hard $upstream --recurse-submodules" -Title 'WhatIF' }
         else { git reset --hard "$upstream" --recurse-submodules }
     }
-    [void]InvokeRepair() {
-        $this.Display()
+    [void]InvokeReset() { $this.InvokeReset($false) }
+    [void]InvokeRepair([bool]$Quiet) {
+        if ($Quiet) { Write-Console -Value "Repairing..." -Title "Action" } else { $this.Display() }
         $remoteOrigin = $this.GetConfiguredOrigin().Name
         [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $remoteOrigin.Name : $this.LockAtCommit
         if ($upstream -eq 'DETATCHED') { $upstream = 'origin' }
@@ -488,6 +489,7 @@ class GitRepo {
             git prune
         }
     }
+    [void]InvokeRepair() { $this.InvokeRepair($false) }
     [void]InvokeClean([bool]$Quiet) {
         if ($Quiet) { Write-Console -Value "Cleaning..." -Title "Action" } else { $this.Display() }
         [string[]]$cleanArguments = @('clean')
