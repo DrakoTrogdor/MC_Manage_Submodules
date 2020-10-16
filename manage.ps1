@@ -234,6 +234,7 @@ do { # Main loop
     Show-WhatIfInfo
     Show-DirectoryInfo
     $menuItems =  @(
+        'Compile, Clean, Reset, Repair, and Commit',
         'Repositories - Initialize',
         'Repositories - Display Details',
         'Repositories - Compare One',
@@ -253,6 +254,87 @@ do { # Main loop
     )
 	$choice = Show-Choices -Title 'Select an action' -List $menuItems -NoSort -ExitPath $dirStartup -ExitScript $exitScript
 	switch ($choice) {
+        'Compile, Clean, Reset, Repair, and Commit' {
+            # Compile
+            Push-Location -Path $dirSources -StackName 'MainLoop'
+            [string[]]$updatedFiles = @()
+            foreach ( $currentSource in $sources ) {
+                [string]$buildReturn = $currentSource.InvokeBuild($dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+                if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
+            }
+
+            # Clean Root Folder
+            Set-Location -Path $dirRoot
+            Write-Host "Cleaning Root Folder"
+            if ($script:WhatIF) { Write-Host 'WhatIF: git clean' }
+            [string[]]$cleanArguments = @('clean')
+            $cleanArguments += ($script:WhatIF ? '-nxfd' : '-xfd')
+            $cleanArguments += @('-e','plugins/')
+            $cleanArguments += @('-e','worlds/')
+            $cleanArguments += @('-e','worlds/world/datapacks/')
+            $cleanArguments += @('-e','.minecraft/mods/')
+            $cleanArguments += @('-e','.minecraft/resourcepacks/')
+
+            foreach ($item in $script:CleanExceptions) {
+                $cleanArguments += @('-e',[string]$item)
+            }
+            git @cleanArguments
+            foreach ($item in $this.CleanAdditions) {
+                Remove-Item $item -Force -Recurse -WhatIf:$($script:WhatIF)
+            }
+
+            # Repair/Prune Root Folder
+            Write-Host "Repairing Root Folder"
+            if ($script:WhatIF) {
+                Write-Console "git fsck --full --strict" -Title 'WhatIF'
+                Write-Console "git prune" -Title 'WhatIF'
+                Write-Console "git reflog expire --expire=now --all" -Title 'WhatIF'
+                Write-Console "git repack -ad" -Title 'WhatIF'
+                Write-Console "git prune" -Title 'WhatIF'
+            }
+            else {
+                git fsck --full --strict
+                git prune
+                git reflog expire --expire=now --all
+                git repack -ad
+                git prune
+            }
+
+
+            foreach ($currentSource in $sources) {
+                $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
+                Set-Location -Path $dirCurrent
+
+                # Display current Repo Header
+                $currentSource.Repo.Display()
+
+                # Clean Individual Source
+                $currentSource.Repo.InvokeClean()
+
+                # Reset Individual Source
+                $currentSource.Repo.InvokeReset()
+
+                # Repair/Prune Individual Source
+                $currentSource.Repo.InvokeRepair()
+
+            }
+
+            Set-Location -Path $dirRoot
+            git add -A
+            [string]$commitTime = Get-Date -Format "dddd, MMMM dd, yyyy 'at' HH:mm K"
+            git commit -m "Auto-update: $commitTime"
+            git push
+
+            # List all updated files
+            if ($updatedFiles.Count -gt 0) {
+               Write-Host "Updated Files...`r`n$('=' * 120)" -ForegroundColor Green
+               foreach ($item in $updatedFiles) {
+                   Write-Host "`t$item" -ForegroundColor Green
+               }
+            }
+            PressAnyKey
+           break
+        }
         'Repositories - Initialize'{
             Push-Location -Path $dirSources -StackName 'MainLoop'
             Write-Host "Displaying Repository Details"
