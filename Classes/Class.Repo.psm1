@@ -420,23 +420,46 @@ class GitRepo {
         Write-Console "$compareBranches" -Title 'Branch'
         Write-Console "$commit" -Title 'Commit'
     }
+    [void] hidden UpdateAndCheckoutSubmodule([string]$Branch,[bool]$SetUpstream=$false){
+        git submodule update --init --recursive -- .
+        git checkout -B $Branch --force
+        if($SetUpstream) { git branch --set-upstream-to=origin/$Branch $Branch }
+    }
     [void]InvokeInitialize() {
         if ((Get-ChildItem).Count -eq 0) {
             if ([string]::IsNullOrWhiteSpace($this.LockAtCommit)) {
+                $this.UpdateAndCheckoutSubmodule($this.GetConfiguredOrigin().DefaultBranch,$true)
+<#
                 [string]$currentBranch = $this.Branch
                 git submodule update --init --recursive -- .
                 git checkout -B $currentBranch --force
                 git branch --set-upstream-to=origin/$currentBranch $currentBranch
+ #>
             }
             else {
+                $this.UpdateAndCheckoutSubmodule($this.LockAtCommit)
+<#
                 git submodule update --init --recursive -- .
                 git checkout $($this.LockAtCommit) --force
+#>
             }
             $this.Display()
         }
         else {
             $this.Display()
-            Write-Console "$($this.Name) is already initialized." -Title 'Init'
+            [string]$symbolicFullName = (git rev-parse --abbrev-ref --symbolic-full-name HEAD)
+            [string]$branchRemote = (git config --get branch.$($symbolicFullName).remote)
+            if ([string]::IsNullOrWhiteSpace($this.GetURL($branchRemote))){
+                if ([string]::IsNullOrWhiteSpace($this.LockAtCommit)) {
+                    $this.UpdateAndCheckoutSubmodule($this.GetConfiguredOrigin().DefaultBranch,$true)
+                }
+                else {
+                    $this.UpdateAndCheckoutSubmodule($this.LockAtCommit)
+                }
+                }
+            else {
+                Write-Console "$($this.Name) is already initialized." -Title 'Init'
+            }
         }
     }
     [void]InvokeCheckout() {

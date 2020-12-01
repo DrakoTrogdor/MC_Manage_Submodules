@@ -43,10 +43,10 @@ param (
 $scriptFile = Get-ChildItem -Path $MyInvocation.MyCommand.Path
 [string]$scriptPath = if($scriptFile.LinkType -eq 'SymbolicLink') { Split-Path -Path (Resolve-Path $scriptFile.Target) } else { ($scriptFile.Directory).FullName }
 $dynamicUsingBlock = @"
-using module $scriptPath\Functions\Function.common.psm1
-using module $scriptPath\Classes\Class.BuildType.psm1
-using module $scriptPath\Classes\Class.Repo.psm1
-using module $scriptPath\Classes\Class.SourceSubModule.psm1
+using module "$scriptPath\Functions\Function.common.psm1"
+using module "$scriptPath\Classes\Class.BuildType.psm1"
+using module "$scriptPath\Classes\Class.Repo.psm1"
+using module "$scriptPath\Classes\Class.SourceSubModule.psm1"
 "@
 $dynamicUsing = [ScriptBlock]::Create($dynamicUsingBlock)
 . $dynamicUsing
