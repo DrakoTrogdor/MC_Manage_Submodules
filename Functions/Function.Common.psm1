@@ -21,3 +21,29 @@ function BuildSpigot {
         mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$file"
     }
 }
+function DownloadFile {
+    param (
+        [string]$URL
+    )
+    $file = Split-Path -Path "$URL" -Leaf
+    if (-not (Test-Path -Path $file)) {
+        Write-Host "Downloading $file..."
+        $progressPreference = 'silentlyContinue'
+        Invoke-WebRequest -Uri $url -OutFile $file
+        Write-Host \"$file downloaded.\"
+    }
+
+}
+function DownloadFileProvideName {
+    param (
+        [string]$URL,
+        [string]$File
+    )
+    if (-not (Test-Path -Path $File)) {
+        Write-Host "Downloading $File..."
+        $progressPreference = 'silentlyContinue'
+        Invoke-WebRequest -Uri $url -OutFile $File
+        Write-Host \"$File downloaded.\"
+    }
+
+}
