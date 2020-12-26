@@ -485,9 +485,11 @@ class GitRepo {
     }
     [void]InvokeReset([bool]$Quiet) {
         if ($Quiet) { Write-Console -Value "Resetting..." -Title "Action" } else { $this.Display() }
-        $remoteOrigin = $this.GetConfiguredOrigin().Name
-        [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $remoteOrigin.Name : $this.LockAtCommit
-        if ($upstream -eq 'DETATCHED') { $upstream = 'origin' }
+        $configuredOrigin = $this.GetConfiguredOrigin()
+        $remoteOrigin = $configuredOrigin.Name
+        if ($remoteOrigin -eq 'DETATCHED') { $remoteOrigin = 'origin' }
+        $remoteBranch = $configuredOrigin.DefaultBranch
+        [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $remoteOrigin + "/" + $remoteBranch : $this.LockAtCommit
         if ($script:WhatIF) { Write-Console "git reset --hard $upstream --recurse-submodules" -Title 'WhatIF' }
         else { git reset --hard "$upstream" --recurse-submodules }
     }

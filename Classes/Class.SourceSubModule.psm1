@@ -7,22 +7,22 @@ using module .\Class.Repo.psm1
 enum SubModuleType {
     Other
     Server
-	Script
-	Plugin
-	Module
-	DataPack
-	ResourcePack
-	NodeDependancy
+    Script
+    Plugin
+    Module
+    DataPack
+    ResourcePack
+    NodeDependancy
 }
 
 ###################
 # Declare Classes #
 ###################
 class SourceSubModule {
-	[string]$Name
-	[SubModuleType]$SubModuleType
-	[GitRepo]$Repo
-	[BuildType]$Build
+    [string]$Name
+    [SubModuleType]$SubModuleType
+    [GitRepo]$Repo
+    [BuildType]$Build
     [string]$FinalName
     Init([string]$Name, [SubModuleType]$SubModuleType, [GitRepo]$Repo, [BuildType]$Build, [string]$FinalName) {
         $this.Name = $Name
@@ -82,9 +82,9 @@ class SourceSubModule {
         # Complete constructor by executing the Init function
         $this.Init($tmpName, $tmpSubModuleType, $tmpRepo, $tmpBuild, $tmpFinalName)
     }
-	[string]GetFinalName() {
-		if ([string]::IsNullOrWhiteSpace($this.FinalName)){ return $this.Name }
-		else { return $this.FinalName }
+    [string]GetFinalName() {
+        if ([string]::IsNullOrWhiteSpace($this.FinalName)){ return $this.Name }
+        else { return $this.FinalName }
     }
     [string] hidden RelativePath([string]$Parent,[string]$Child){
         if([string]::IsNullOrWhiteSpace($Parent) -or [string]::IsNullOrWhiteSpace($Child)) { return ''}
