@@ -94,6 +94,10 @@ function LoadConfiguration {
         [boolean]$script:CleanAndPullRepo = $ConfigurationData.Contains('CleanAndPullRepo') ? $ConfigurationData.CleanAndPullRepo : $true
 
         [string[]]$script:ArchiveExceptions = [string[]]@()
+        $script:ArchiveExceptions += "????-??-??@??-??-untracked.zip"
+        $script:ArchiveExceptions += "Untracked/"
+        $script:ArchiveExceptions += "backups/"
+        $script:ArchiveExceptions += "worlds/"
         if ($ConfigurationData.Contains('ArchiveExceptions')) {
             foreach ($item in $ConfigurationData.ArchiveExceptions) {
                 $script:ArchiveExceptions += [string]$item
@@ -230,6 +234,29 @@ LoadConfiguration -ConfigurationData $script:ManageJSON.configuration
 ## Load submodules from hashtable
 LoadSourceSubModules -SubmodulesData $script:ManageJSON.submodules -SourcesArray ([ref]$sources)
 
+function CleanRootFolder {
+    Set-Location -Path $dirRoot
+    Write-Host "Cleaning Root Folder"
+    if ($script:WhatIF) { Write-Host 'WhatIF: git clean' }
+    [string[]]$cleanArguments = @('clean')
+    $cleanArguments += ($script:WhatIF ? '-nxfd' : '-xfd')
+    $cleanArguments += @('-e','plugins/')
+    $cleanArguments += @('-e','worlds/')
+    $cleanArguments += @('-e','worlds/world/datapacks/')
+    $cleanArguments += @('-e','.minecraft/mods/')
+    $cleanArguments += @('-e','.minecraft/resourcepacks/')
+    $cleanArguments += @('-e','????-??-??@??-??-untracked.zip')
+    $cleanArguments += @('-e','Untracked/')
+    $cleanArguments += @('-e','backups/')
+
+    foreach ($item in $script:CleanExceptions) {
+        $cleanArguments += @('-e',[string]$item)
+    }
+    git @cleanArguments
+    foreach ($item in $this.CleanAdditions) {
+        Remove-Item $item -Force -Recurse -WhatIf:$($script:WhatIF)
+    }
+}
 
 do { # Main loop
     Clear-Host
@@ -266,24 +293,7 @@ do { # Main loop
             }
 
             # Clean Root Folder
-            Set-Location -Path $dirRoot
-            Write-Host "Cleaning Root Folder"
-            if ($script:WhatIF) { Write-Host 'WhatIF: git clean' }
-            [string[]]$cleanArguments = @('clean')
-            $cleanArguments += ($script:WhatIF ? '-nxfd' : '-xfd')
-            $cleanArguments += @('-e','plugins/')
-            $cleanArguments += @('-e','worlds/')
-            $cleanArguments += @('-e','worlds/world/datapacks/')
-            $cleanArguments += @('-e','.minecraft/mods/')
-            $cleanArguments += @('-e','.minecraft/resourcepacks/')
-
-            foreach ($item in $script:CleanExceptions) {
-                $cleanArguments += @('-e',[string]$item)
-            }
-            git @cleanArguments
-            foreach ($item in $this.CleanAdditions) {
-                Remove-Item $item -Force -Recurse -WhatIf:$($script:WhatIF)
-            }
+            CleanRootFolder
 
             # Repair/Prune Root Folder
             Write-Host "Repairing Root Folder"
@@ -416,26 +426,15 @@ do { # Main loop
 		}
 		'Repositories - Clean'{
             Push-Location -Path $dirRoot -StackName 'MainLoop'
-            Write-Host "Cleaning Root Folder"
-            if ($script:WhatIF) { Write-Host 'WhatIF: git clean' }
-            [string[]]$cleanArguments = @('clean')
-            $cleanArguments += ($script:WhatIF ? '-nxfd' : '-xfd')
-            $cleanArguments += @('-e','plugins/')
-            $cleanArguments += @('-e','worlds/')
-            $cleanArguments += @('-e','worlds/world/datapacks/')
-            $cleanArguments += @('-e','.minecraft/mods/')
-            $cleanArguments += @('-e','.minecraft/resourcepacks/')
 
-            foreach ($item in $script:CleanExceptions) {
-                $cleanArguments += @('-e',[string]$item)
-            }
-            git @cleanArguments
-            foreach ($item in $this.CleanAdditions) {
-                Remove-Item $item -Force -Recurse -WhatIf:$($script:WhatIF)
-            }
+            # Clean Root Folder
+            CleanRootFolder
+
+            # Clean Individual Source
             foreach ($currentSource in $sources) {
                 $currentSource.InvokeClean($dirSources)
             }
+            
             PressAnyKey
             break
         }
