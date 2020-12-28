@@ -187,6 +187,8 @@ function Show-DirectoryInfo() {
 #####################
 # Declare Variables #
 #####################
+$global:ProgressPreference = "SilentlyContinue"
+
 ## Base directories
 $dirStartup = (Get-Location).Path
 $dirRoot = Split-Path ($MyInvocation.MyCommand.Path)
