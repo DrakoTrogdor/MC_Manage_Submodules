@@ -34,7 +34,9 @@
                 "11": { "type": "string" },
                 "12": { "type": "string" },
                 "13": { "type": "string" },
-                "14": { "type": "string" }
+                "14": { "type": "string" },
+                "15": { "type": "string" },
+                "16": { "type": "string" }
              }
         },
         "typeBuildType":{
