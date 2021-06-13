@@ -235,8 +235,10 @@ class BuildTypeGradle : BuildTypeJava {
             }
             else {
                 $this.CheckGradleInstall()
-                [Object[]]$tempReturn = $tempReturn = Invoke-Expression -Command "$([BuildTypeGradle]::gradlew) $versionCommand --no-daemon --quiet --warning-mode=none --console=rich"
+                $this.PushJAVA_HOME()
+                [Object[]]$tempReturn  = (Invoke-Expression -Command "$([BuildTypeGradle]::gradlew) $versionCommand --no-daemon --quiet --warning-mode=none --console=rich")
                 #.\gradlew.bat $versionCommand --no-daemon --quiet --warning-mode=none --console=rich)
+                $this.PopJAVA_HOME()
                 [string]$tempReturn = $null -eq $tempReturn ? 'ERROR CHECKING VERSION' : [System.String]::Join("`r`n",$tempReturn)
                 if ($tempReturn -imatch '(?:^|\r?\n)(full|build|mod_|project|projectBase)[vV]ersion: (?''version''.*)(?:\r?\n|\z|$)') { $return = $Matches['version'] }
                 elseif ($tempReturn -imatch '(?:^|\r?\n)[vV]ersion: (?''version''.*)(?:\r?\n|\z|$)') { $return = $Matches['version'] }
@@ -265,11 +267,13 @@ class BuildTypeGradle : BuildTypeJava {
 
     [void] hidden CheckGradleInstall(){
         if (-not (Test-Path -Path '.\gradlew.bat')) {
-            $url = 'https://services.gradle.org/distributions/gradle-6.6-bin.zip'
+            $GradleBuild = 'gradle-7.1-rc-2'
+            $url = "https://services.gradle.org/distributions/$($GradleBuild)-bin.zip"
+            #$url = 'https://services.gradle.org/distributions/gradle-6.6-bin.zip'
             $file = Split-Path -Path "$url" -Leaf
             Invoke-WebRequest -Uri $url -OutFile $file
             Expand-Archive -Path $file -DestinationPath .
-            .\gradle-6.6\bin\gradle.bat wrapper --no-daemon
+            Invoke-Expression ".\$($GradleBuild)\bin\gradle.bat wrapper --no-daemon"
         }
     }
 }
