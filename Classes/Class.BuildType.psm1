@@ -111,11 +111,11 @@ class BuildType {
     [string]CleanVersion([string]$Value) {
         if ([string]::IsNullOrWhiteSpace($Value)) { return '' }
 
-        [string]$ver = "1\.16(?:\.[0-3])?"
+        [string]$ver = "1\.1[6-7](?:\.[xX0-9])?" #This is the current version for removables
         $return = ($Value -replace "[$(-join ([System.Io.Path]::GetInvalidPathChars()| ForEach-Object {"\x$([Convert]::ToString([byte]$_,16).PadLeft(2,'0'))"}))]", '').Trim()
 
         if ($return -match "^[1-9]\d*\.\d+.\d+$") { return $return }
-        if ($return -match "^1\.16$")             { return '1.16.0' }
+        if ($return -match "^1\.17$")             { return '1.17.0' }
 
         [string]$sep = '[' + [System.Text.RegularExpressions.Regex]::Escape('-+') + ']'
         [string[]]$removables = @('custom','local','snapshot','(alpha|beta|dev|fabric|pre|rc|arne)(\.?\d+)*','\d{2}w\d{2}[a-z]',"v\d{6,}","$ver")
@@ -236,8 +236,12 @@ class BuildTypeGradle : BuildTypeJava {
             else {
                 $this.CheckGradleInstall()
                 $this.PushJAVA_HOME()
-                [Object[]]$tempReturn  = (Invoke-Expression -Command "$([BuildTypeGradle]::gradlew) $versionCommand --no-daemon --quiet --warning-mode=none --console=rich")
                 #.\gradlew.bat $versionCommand --no-daemon --quiet --warning-mode=none --console=rich)
+                [Object[]]$tempReturn  = (Invoke-Expression -Command "$([BuildTypeGradle]::gradlew) $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
+                #Sometimes gradle needs to be executed once before it will return without an error.
+                if(($null -ne $tempReturn) -and ($tempReturn -imatch 'A problem occurred configuring root project')) {
+                    [Object[]]$tempReturn  = (Invoke-Expression -Command "$([BuildTypeGradle]::gradlew) $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
+                }
                 $this.PopJAVA_HOME()
                 [string]$tempReturn = $null -eq $tempReturn ? 'ERROR CHECKING VERSION' : [System.String]::Join("`r`n",$tempReturn)
                 if ($tempReturn -imatch '(?:^|\r?\n)(full|build|mod_|project|projectBase)[vV]ersion: (?''version''.*)(?:\r?\n|\z|$)') { $return = $Matches['version'] }
