@@ -122,8 +122,10 @@ class SourceSubModule {
             }
         }
     }
-    DisplayHeader(){
-        Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $($this.RelativePath($script:dirRoot,(Get-Location)))`r`n$('=' * 120)" -ForegroundColor red
+    DisplayHeader(
+        [string]$DirectoryRoot #$script:dirRoot
+    ){
+        Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $($this.RelativePath($DirectoryRoot,(Get-Location)))`r`n$('=' * 120)" -ForegroundColor red
     }
     InvokeClean(
         [string]$PathSource
@@ -134,6 +136,7 @@ class SourceSubModule {
         $this.Repo.InvokeClean()
     }
     [string]InvokeBuild (
+            [string]$PathRoot,
             [string]$PathSource,
             [string]$PathServer,
             [string]$PathScript,
@@ -149,7 +152,7 @@ class SourceSubModule {
         $dirCurrentSource = Join-Path -Path $PathSource -ChildPath $this.Name
 
         Set-Location -Path $dirCurrentSource
-        $this.DisplayHeader()
+        $this.DisplayHeader($PathRoot)
 
         if ($PerformCleanAndPull) {
             $this.Repo.InvokeClean($true)

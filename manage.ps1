@@ -288,7 +288,7 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
                 if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
             }
 
@@ -319,7 +319,7 @@ do { # Main loop
 
 
                 # Display current Source/Repo Header
-                $currentSource.DisplayHeader()
+                $currentSource.DisplayHeader($dirRoot)
                 $currentSource.Repo.Display()
 
                 # Clean Individual Source
@@ -356,7 +356,7 @@ do { # Main loop
             foreach ($currentSource in $sources) {
                 $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
-                $currentSource.DisplayHeader()
+                $currentSource.DisplayHeader($dirRoot)
                 $currentSource.Repo.InvokeInitialize()
             }
             PressAnyKey
@@ -368,7 +368,7 @@ do { # Main loop
             foreach ($currentSource in $sources) {
                 $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
-                $currentSource.DisplayHeader()
+                $currentSource.DisplayHeader($dirRoot)
                 $currentSource.Repo.Display()
             }
             PressAnyKey
@@ -444,7 +444,7 @@ do { # Main loop
             foreach ($currentSource in $sources) {
                 $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
-                $currentSource.DisplayHeader()
+                $currentSource.DisplayHeader($dirRoot)
                 $currentSource.Repo.InvokeReset()
             }
             PressAnyKey
@@ -472,7 +472,7 @@ do { # Main loop
             foreach ($currentSource in $sources) {
                 $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
-                $currentSource.DisplayHeader()
+                $currentSource.DisplayHeader($dirRoot)
                 $currentSource.Repo.InvokeRepair()
             }
             PressAnyKey
@@ -483,7 +483,7 @@ do { # Main loop
             Write-Host "Comparing Branches on all Repositories"
             foreach ( $currentSource in $sources ) {
                 Set-Location -Path $(Join-Path -Path $dirSources -ChildPath $($currentSource.Name))
-                $currentSource.DisplayHeader()
+                $currentSource.DisplayHeader($dirRoot)
                 $currentSource.Repo.CompareAheadBehind()
             }
             PressAnyKey
@@ -493,7 +493,7 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dirStartup
             Set-Location -Path $(Join-Path -Path $dirSources -ChildPath $($currentSource.Name))
-            $currentSource.DisplayHeader()
+            $currentSource.DisplayHeader($dirRoot)
             $currentSource.Repo.CompareAheadBehind()
             PressAnyKey
             break
@@ -502,7 +502,7 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
                 if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
             }
             if ($updatedFiles.Count -gt 0) {
@@ -517,7 +517,7 @@ do { # Main loop
         'Build - Compile One'{
             Push-Location -Path $dirSources -StackName 'MainLoop'
             $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dirStartup
-            [string]$buildReturn = $currentSource.InvokeBuild($dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+            [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
             if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { Write-Host "Updated Files...`r`n$('=' * 120)`r`n`t$buildReturn" -ForegroundColor Green }
             PressAnyKey
             break
