@@ -277,7 +277,9 @@ class BuildTypeGradle : BuildTypeJava {
             $file = Split-Path -Path "$url" -Leaf
             Invoke-WebRequest -Uri $url -OutFile $file
             Expand-Archive -Path $file -DestinationPath .
+            $this.PushJAVA_HOME()
             Invoke-Expression ".\$($GradleBuild)\bin\gradle.bat wrapper --no-daemon"
+            $this.PopJAVA_HOME()
         }
     }
 }
