@@ -211,7 +211,8 @@ class BuildTypeJava : BuildType {
 # Declare Class BuildTypeGradle #
 #################################
 class BuildTypeGradle : BuildTypeJava {
-    [string] static $gradlew = 'java "-Dfile.encoding=UTF-8" "-Dsun.stdout.encoding=UTF-8" "-Dsun.stderr.encoding=UTF-8" "-Dorg.gradle.appname=gradlew" -classpath ".\gradle\wrapper\gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain' # -Xmx64m -Xms64m 
+    # -DXlint:none to remove Linting warning from showing up at all
+    [string] static $gradlew = 'java "-Dfile.encoding=UTF-8" "-Dsun.stdout.encoding=UTF-8" "-Dsun.stderr.encoding=UTF-8" "-Dorg.gradle.appname=gradlew" -classpath ".\gradle\wrapper\gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain' # -Xmx64m -Xms64m
     # Changed the following line to above in order to bypass error issues with batch file incompatibilities. Added UTF-8 encoding to reduce compilation warnings
     # [string] static $gradlew = '.\gradlew.bat'
     BuildTypeGradle() : base('build',$null,$null,$null,'properties','build\libs\*.jar',$true,$null) {}
