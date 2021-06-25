@@ -111,14 +111,14 @@ class BuildType {
     [string]CleanVersion([string]$Value) {
         if ([string]::IsNullOrWhiteSpace($Value)) { return '' }
 
-        [string]$ver = "1\.1[6-7](?:\.[xX0-9])?" #This is the current version for removables
         $return = ($Value -replace "[$(-join ([System.Io.Path]::GetInvalidPathChars()| ForEach-Object {"\x$([Convert]::ToString([byte]$_,16).PadLeft(2,'0'))"}))]", '').Trim()
 
         if ($return -match "^[1-9]\d*\.\d+.\d+$") { return $return }
-        if ($return -match "^1\.17$")             { return '1.17.0' }
+        if ($return -match "^[1-9]\d*\.\d+$")     { return "$return.0" }
+        if ($return -match "^[1-9]\d*$")          { return "$return.0.0" }
 
         [string]$sep = '[' + [System.Text.RegularExpressions.Regex]::Escape('-+') + ']'
-        [string[]]$removables = @('custom','local','snapshot','(alpha|beta|dev|fabric|pre|rc|arne)(\.?\d+)*','\d{2}w\d{2}[a-z]',"v\d{6,}","$ver")
+        [string[]]$removables = @('custom','local','snapshot','(alpha|beta|dev|fabric|pre|rc|arne)(\.?\d+)*','\d{2}w\d{2}[a-z]',"v\d{6,}")
 		foreach ($item in $removables) {
             [System.Boolean]$matchFound = $false
             do {
@@ -131,7 +131,14 @@ class BuildType {
                 }
             } while ($matchFound)
 		}
-		if ($return -imatch "^\s*v?(?'match'\d+)\s*$") { $return = "$($Matches['match']).0.0"}
+
+        [string]$mcVer  = "(?:mc)?1\.1[6-7](?:\.[xX0-9])?" #This matches the versions since 1.16
+        [string]$semVer = "v?(?:\d+\.\d+\.(?:\d+|[xX0-9])|\d+\.(?:\d+|[xX0-9])|(?:\d+|[xX0-9]))" # Version like number
+
+        if ($return -imatch "^\s*$($mcVer)$($sep)(?'match'$($semVer))\s*$") { $return = "$($Matches['match'])"}
+        if ($return -imatch "^\s*(?'match'$($semVer))$($sep)$($mcVer)\s*$") { $return = "$($Matches['match'])"}
+
+        if ($return -imatch "^\s*v?(?'match'\d+)\s*$") { $return = "$($Matches['match']).0.0"}
 		if ($return -imatch "^\s*v?(?'match'\d+\.\d+)\s*$") { $return = "$($Matches['match']).0"}
         if ($return -imatch "^\s*v?0*(?'match'\d+\.\d+\.\d+)\s*$") { $return = "$($Matches['match'])"}
 		return $return
