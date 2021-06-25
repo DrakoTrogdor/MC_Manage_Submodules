@@ -405,6 +405,8 @@ class GitRepo {
         }
     }
     [string]GetCommit() { return (git rev-parse --short=7 HEAD) 2>$null }
+    [string]GetCommitDate([string]$Commit) { return (git show $Commit -s --format=%ci) 2>$null }
+    [string]GetCommitDate() { return (git show -s --format=%ci) 2>$null }
     [void]Display(){
         [RemoteRepo]$localRepo    = $this.GetLocalHead()
         [RemoteRepo]$upstreamRepo = $this.GetLocalUpstream()
@@ -413,12 +415,14 @@ class GitRepo {
         [string]$compareURLs      = $upstreamRepo.URL + ($upstreamRepo.URL -like $defaultRepo.URL ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.URL + "`"^fz)")
         [string]$compareBranches  = $localRepo.DefaultBranch + ($localRepo.DefaultBranch -like $defaultRepo.DefaultBranch ? " (^fgSame^fz)" : " (^frChanged from `"" + $defaultRepo.DefaultBranch + "`"^fz)")
         [string]$commit           = $this.GetCommit()
+        [string]$commitDate       = $this.GetCommitDate($commit)
 
         #if ($ShowName) { Write-Color "^fM$($this.Name)^fz" }
         Write-Console "$compareRemotes" -Title 'Remote'
         Write-Console "$compareURLs" -Title 'URL'
         Write-Console "$compareBranches" -Title 'Branch'
         Write-Console "$commit" -Title 'Commit'
+        Write-Console "$commitDate" -Title 'Date'
     }
     [void] hidden UpdateAndCheckoutSubmodule([string]$Branch,[bool]$SetUpstream=$false){
         git submodule update --init --recursive -- .
