@@ -72,6 +72,12 @@ class BuildType {
         }
         return $return
     }
+    [string]ReplaceScriptJAVA_HOME([string]$Value) {
+        for ($version = 8; $version -le 16; $version++) {
+            $Value = $Value.Replace("`$(`$script:JAVA_HOME.$($version))",$global:JAVA_HOME.$version)
+        }
+        return $Value
+    }
 
     InvokeInitBuild(){ $this.InvokeInitBuild($false) }
     InvokePreBuild(){ $this.InvokePreBuild($false) }
@@ -80,31 +86,34 @@ class BuildType {
 
     InvokeInitBuild([switch]$WhatIF){
         if ($this.HasInitCommand()) { 
-            if ($WhatIF) { Write-Console "$($this.GetInitCommand())" -Title 'WhatIF' }
-            else { Invoke-Expression $($this.GetInitCommand()) }
+            [string]$thisCommand = $this.ReplaceScriptJAVA_HOME($this.GetInitCommand())
+            if ($WhatIF) { Write-Console "$thisCommand" -Title 'WhatIF' }
+            else { Invoke-Expression $thisCommand }
         }
     }
     InvokePreBuild([switch]$WhatIF){
         if ($this.HasPreCommand()) { 
-            if ($WhatIF) { Write-Console "$($this.GetPreCommand())" -Title 'WhatIF'}
-            else { Invoke-Expression $($this.GetPreCommand()) }
+            [string]$thisCommand = $this.ReplaceScriptJAVA_HOME($this.GetPreCommand())
+            if ($WhatIF) { Write-Console "$thisCommand" -Title 'WhatIF'}
+            else { Invoke-Expression $thisCommand }
         }
     }
     InvokeBuild([switch]$WhatIF){
         if ($this.HasCommand()) { 
-            if ($WhatIF) { Write-Console "$($this.GetCommand())" -Title 'WhatIF'}
+            [string]$thisCommand = $this.ReplaceScriptJAVA_HOME($this.GetCommand())
+            if ($WhatIF) { Write-Console "$thisCommand" -Title 'WhatIF'}
             else {
-                [string]$buildCommand = $this.GetCommand()
-                Write-Console "`"$buildCommand`""  -Title 'Executing'
-                $currentProcess = Start-Process -FilePath "$env:ComSpec" -ArgumentList "/c $buildCommand" -NoNewWindow -PassThru
+                Write-Console "`"$thisCommand`""  -Title 'Executing'
+                $currentProcess = Start-Process -FilePath "$env:ComSpec" -ArgumentList "/c $thisCommand" -NoNewWindow -PassThru
                 $currentProcess.WaitForExit()
             }
         }
     }
     InvokePostBuild([switch]$WhatIF){
         if ($this.HasPostCommand()) { 
-            if ($WhatIF) { Write-Console "$($this.GetPostCommand())" -Title 'WhatIF' }
-            else { Invoke-Expression $($this.GetPostCommand()) }
+            [string]$thisCommand = $this.ReplaceScriptJAVA_HOME($this.GetPostCommand())
+            if ($WhatIF) { Write-Console "$thisCommand" -Title 'WhatIF' }
+            else { Invoke-Expression $thisCommand }
         }
     }
 

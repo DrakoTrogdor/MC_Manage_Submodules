@@ -10,7 +10,11 @@ function BuildSpigot {
             Push-Location -Path "$ToolPath" -StackName 'SpigotBuild'
             $javaCommand = [BuildTypeJava]::PushEnvJava($JDKPath)
             Write-Host "Building Craftbukkit and Spigot versions $Version"
-            $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT" -NoNewWindow -PassThru
+            if($Version -imatch "1\.(1[7-9]|[2-9]\d)(?:\.\d)?") {
+                $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT" -NoNewWindow -PassThru
+            } else {
+                $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT --remapped" -NoNewWindow -PassThru
+            }
             $javaProcess.WaitForExit()
             [BuildTypeJava]::PopEnvJava()
             Pop-Location -StackName 'SpigotBuild'
