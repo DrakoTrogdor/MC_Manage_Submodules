@@ -240,7 +240,7 @@ class BuildTypeGradle : BuildTypeJava {
     }
     [string]GetCommand() {
         [string]$buildCommand = [string]::IsNullOrWhiteSpace($this.Command) ? 'build' : $this.Command
-        return "$([BuildTypeGradle]::gradlew) $buildCommand --no-daemon --quiet --warning-mode=none --console=rich -DXlint:-deprecation" #-`"Dorg.gradle.logging.level`"=`"quiet`" -`"Dorg.gradle.warning.mode`"=`"none`" -`"Dorg.gradle.console`"=`"rich`"
+        return "$([BuildTypeGradle]::gradlew) $buildCommand --no-daemon --quiet --warning-mode=none --console=rich" #-`"Dorg.gradle.logging.level`"=`"quiet`" -`"Dorg.gradle.warning.mode`"=`"none`" -`"Dorg.gradle.console`"=`"rich`"
     }
     [string]GetVersion(){ return $this.GetVersion($false) }
     [string]GetVersion([switch]$RawVersion) {

@@ -85,7 +85,7 @@ function LoadConfiguration {
         [string]$script:myGit_URL = $ConfigurationData.myGit_URL
 
         ## JAVA_HOME alternatives
-        $script:JAVA_HOME = $ConfigurationData.JAVA_HOME
+        $global:JAVA_HOME = $ConfigurationData.JAVA_HOME
 
         ## Show Debugging Information
         [boolean]$script:ShowDebugInfo = ($ConfigurationData.ShowDebugInfo)
@@ -144,7 +144,7 @@ function LoadSourceSubModules {
                 # Set the JAVA_HOME property if it exists
                 if ($item.Build.Contains('JAVA_HOME')){
                     [int]$version = $item.Build.JAVA_HOME
-                    [string]$path = $script:JAVA_HOME.$version
+                    [string]$path = $global:JAVA_HOME.$version
                     $item.Build.JAVA_HOME = [string]::IsNullOrWhiteSpace($path) ? $null : $path
                 }
                 $ReturnSources += [SourceSubModule]::new($item)
@@ -178,7 +178,7 @@ function Show-DirectoryInfo() {
     Write-Host "`tResource Packs: $dirResourcePacks" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Green
     Write-Host "`tmyGit_URL:      $($script:myGit_URL)" -ForegroundColor Green
-    foreach ($item in $script:JAVA_HOME) {
+    foreach ($item in $global:JAVA_HOME) {
         [int]$spaces = 4 - ([string]($item.Keys[0])).Length
         $spaces = $spaces -gt 0 ? $spaces : 0
         Write-Host "`tJAVA_HOME($($item.Keys[0])):$(' ' * $spaces)$($item.Values[0])" -ForegroundColor Green
