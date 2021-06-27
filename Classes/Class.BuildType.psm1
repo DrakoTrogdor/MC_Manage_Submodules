@@ -129,7 +129,7 @@ class BuildType {
 
 
         [string]$sep = '[' + [System.Text.RegularExpressions.Regex]::Escape('-+') + ']'
-        [string[]]$removables = @('custom','local','snapshot','(alpha|beta|dev|fabric|pre|rc|arne)(\.?\d+)*([\+\-]\d+)','\d{2}w\d{2}[a-z]','v\d{6,}')
+        [string[]]$removables = @('custom','local','snapshot','(alpha|beta|dev|fabric|pre|rc|arne)(\.?\d+|[\+\-]\d+)*','\d{2}w\d{2}[a-z]','v\d{6,}')
 		foreach ($item in $removables) {
             [System.Boolean]$matchFound = $false
             do {
