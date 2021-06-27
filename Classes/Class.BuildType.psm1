@@ -122,12 +122,14 @@ class BuildType {
 
         $return = ($Value -replace "[$(-join ([System.Io.Path]::GetInvalidPathChars()| ForEach-Object {"\x$([Convert]::ToString([byte]$_,16).PadLeft(2,'0'))"}))]", '').Trim()
 
-        if ($return -match "^[1-9]\d*\.\d+.\d+$") { return $return }
-        if ($return -match "^[1-9]\d*\.\d+$")     { return "$return.0" }
-        if ($return -match "^[1-9]\d*$")          { return "$return.0.0" }
+        # Quick check if purely a proper SemVer
+        if ($return -imatch "^\s*v?0*(?'major'\d+)\s*$")                                   { return "$($Matches['major']).0.0" }
+		if ($return -imatch "^\s*v?0*(?'major'\d+)\.0*(?'minor'\d+)\s*$")                  { return "$($Matches['major']).$($Matches['minor']).0"}
+        if ($return -imatch "^\s*v?0*(?'major'\d+)\.0*(?'minor'\d+)\.0*(?'patch'\d+)\s*$") { return "$($Matches['major']).$($Matches['minor']).$($Matches['patch'])"}
+
 
         [string]$sep = '[' + [System.Text.RegularExpressions.Regex]::Escape('-+') + ']'
-        [string[]]$removables = @('custom','local','snapshot','(alpha|beta|dev|fabric|pre|rc|arne)(\.?\d+)*','\d{2}w\d{2}[a-z]',"v\d{6,}")
+        [string[]]$removables = @('custom','local','snapshot','(alpha|beta|dev|fabric|pre|rc|arne)(\.?\d+)*([\+\-]\d+)','\d{2}w\d{2}[a-z]','v\d{6,}')
 		foreach ($item in $removables) {
             [System.Boolean]$matchFound = $false
             do {
@@ -141,18 +143,22 @@ class BuildType {
             } while ($matchFound)
 		}
 
-        [string]$mcVer  = "(?:mc)?1\.1[6-7](?:\.[xX0-9])?" #This matches the versions since 1.16
+        [string]$mcVer  = "(?:mc)?1\.1[6-7](?:\.[xX0-9])?(?:\.?[0-9a-f]{7})?" #This matches the versions since 1.16 (Optional commit after, due to ModMenu)
         [string]$semVer = "v?(?:\d+\.\d+\.(?:\d+|[xX0-9])|\d+\.(?:\d+|[xX0-9])|(?:\d+|[xX0-9]))" # Version like number
 
-        if ($return -imatch "^\s*(?'mcVer'$($mcVer))$($sep)v?(?'buildVer'\d+)\s*$") { $return = "$($Matches['mcVer']).$($Matches['buildVer'])"}
+        # If all that is left is an MC version and a single digit version format it as MCVersion.Version
+        if ($return -imatch "^\s*(?'mcVer'$($mcVer))$($sep)v?(?'buildVer'\d+)\s*$") { $return = "$($Matches['mcVer']).$($Matches['buildVer'])" }
 
-        if ($return -imatch "^\s*$($mcVer)$($sep)(?'match'$($semVer))\s*$") { $return = "$($Matches['match'])"}
-        if ($return -imatch "^\s*(?'match'$($semVer))$($sep)$($mcVer)\s*$") { $return = "$($Matches['match'])"}
+        # Remove MC version if both an MC version and submodule version exist
+        if ($return -imatch "^\s*$($mcVer)$($sep)(?'match'$($semVer))\s*$") { $return = "$($Matches['match'])" }
+        if ($return -imatch "^\s*(?'match'$($semVer))$($sep)$($mcVer)\s*$") { $return = "$($Matches['match'])" }
 
-        if ($return -imatch "^\s*v?(?'match'\d+)\s*$") { $return = "$($Matches['match']).0.0"}
-		if ($return -imatch "^\s*v?(?'match'\d+\.\d+)\s*$") { $return = "$($Matches['match']).0"}
-        if ($return -imatch "^\s*v?0*(?'match'\d+\.\d+\.\d+)\s*$") { $return = "$($Matches['match'])"}
-		return $return
+        # Format as proper semver
+        if ($return -imatch "^\s*v?0*(?'major'\d+)\s*$")                                   { $return = "$($Matches['major']).0.0" }
+		if ($return -imatch "^\s*v?0*(?'major'\d+)\.0*(?'minor'\d+)\s*$")                  { $return = "$($Matches['major']).$($Matches['minor']).0" }
+        if ($return -imatch "^\s*v?0*(?'major'\d+)\.0*(?'minor'\d+)\.0*(?'patch'\d+)\s*$") { $return = "$($Matches['major']).$($Matches['minor']).$($Matches['patch'])" }
+
+        return $return
 	}
 }
 
