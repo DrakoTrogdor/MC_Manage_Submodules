@@ -65,3 +65,37 @@ function DownloadFileProvideName {
     }
 
 }
+
+function ConvertLineEndingsToLF {
+    param (
+        [string]$Path
+    )
+    if (Test-Path -Path $Path) {
+        $Path = Resolve-Path -Path $Path
+        $content = [IO.File]::ReadAllText($Path) -replace "`r`n", "`n"
+        [IO.File]::WriteAllText($Path, $content)
+    }
+}
+
+function GitApplyPatch {
+    param (
+        [string]$PatchString,
+        [Parameter(Mandatory=$false)][Switch]$UnescapeJSON
+    )
+    [string]$patchFile = ".\" + (new-guid).Guid + ".patch"
+    if ($UnescapeJSON) {
+        # Checks for escaped characters behind odd numbers of '\' (only up to 100, infinite look behinds not allowed)
+        $PatchString = $PatchString  -replace '\\r(?<![^\\](?:\\\\){1,100}r)', "`r" # Carriage Return
+        $PatchString = $PatchString  -replace '\\n(?<![^\\](?:\\\\){1,100}n)', "`n" # New Line
+        $PatchString = $PatchString  -replace '\\b(?<![^\\](?:\\\\){1,100}b)', "`b" # Backspace
+        $PatchString = $PatchString  -replace '\\f(?<![^\\](?:\\\\){1,100}f)', "`f" # Form Feed
+        $PatchString = $PatchString  -replace '\\t(?<![^\\](?:\\\\){1,100}r)', "`t" # Tab
+        $PatchString = $PatchString  -replace '\\"(?<![^\\](?:\\\\){1,100}")', "`"" # Double Quote
+        $PatchString = $PatchString  -replace '\\/(?<![^\\](?:\\\\){1,100}/)', "/"  # Forward Slash
+        $PatchString = $PatchString.Replace("\\","\") # Backslash
+    }
+    $PatchString | Out-File -FilePath $patchFile
+    ConvertLineEndingsToLF -Path $patchFile
+    git apply --ignore-space-change --ignore-whitespace $patchFile
+    Remove-Item -Path $patchFile -Force
+}

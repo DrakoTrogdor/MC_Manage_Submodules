@@ -144,6 +144,8 @@ class BuildType {
         [string]$mcVer  = "(?:mc)?1\.1[6-7](?:\.[xX0-9])?" #This matches the versions since 1.16
         [string]$semVer = "v?(?:\d+\.\d+\.(?:\d+|[xX0-9])|\d+\.(?:\d+|[xX0-9])|(?:\d+|[xX0-9]))" # Version like number
 
+        if ($return -imatch "^\s*(?'mcVer'$($mcVer))$($sep)v?(?'buildVer'\d+)\s*$") { $return = "$($Matches['mcVer']).$($Matches['buildVer'])"}
+
         if ($return -imatch "^\s*$($mcVer)$($sep)(?'match'$($semVer))\s*$") { $return = "$($Matches['match'])"}
         if ($return -imatch "^\s*(?'match'$($semVer))$($sep)$($mcVer)\s*$") { $return = "$($Matches['match'])"}
 
