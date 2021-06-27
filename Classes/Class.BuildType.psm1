@@ -143,6 +143,9 @@ class BuildType {
             } while ($matchFound)
 		}
 
+        # Everything was removed by the "removables" foreach loop
+        if ($return -like '-') { return '0.0.0' }
+
         [string]$mcVer  = "(?:mc)?1\.1[6-7](?:\.[xX0-9])?(?:\.?[0-9a-f]{7})?" #This matches the versions since 1.16 (Optional commit after, due to ModMenu)
         [string]$semVer = "v?(?:\d+\.\d+\.(?:\d+|[xX0-9])|\d+\.(?:\d+|[xX0-9])|(?:\d+|[xX0-9]))" # Version like number
 
