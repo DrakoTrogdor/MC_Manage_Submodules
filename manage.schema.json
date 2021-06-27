@@ -140,7 +140,7 @@
         "configuration": {
             "description": "Defines script configuration settings",
             "type": "object",
-            "required": ["myGit_URL","JAVA_HOME"],
+            "required": ["myGit_URL","JAVA_HOME","Java_Default"],
             "additionalProperties": false,
             "properties": {
                 "myGit_URL": {
@@ -153,6 +153,11 @@
                     "uniqueItems": true,
                     "items": {"$ref": "#/definitions/typeJavaVersions"},
                     "additionalItems": false
+                },
+                "Java_Default": {
+                    "description": "Default version of Java to use when JAVA_HOME is not defined for a submodule",
+                    "type": "integer",
+                    "enum": [8,9,10,11,12,13,14,15,16]
                 },
                 "ShowDebugInfo":{
                     "description": "Show debugging information",

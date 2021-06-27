@@ -87,6 +87,9 @@ function LoadConfiguration {
         ## JAVA_HOME alternatives
         $global:JAVA_HOME = $ConfigurationData.JAVA_HOME
 
+        ## Default JAVA_HOME
+        [string]$script:Java_Default = $global:JAVA_HOME.$($ConfigurationData.Java_Default)
+        
         ## Show Debugging Information
         [boolean]$script:ShowDebugInfo = ($ConfigurationData.ShowDebugInfo)
 
@@ -145,7 +148,10 @@ function LoadSourceSubModules {
                 if ($item.Build.Contains('JAVA_HOME')){
                     [int]$version = $item.Build.JAVA_HOME
                     [string]$path = $global:JAVA_HOME.$version
-                    $item.Build.JAVA_HOME = [string]::IsNullOrWhiteSpace($path) ? $null : $path
+                    $item.Build.JAVA_HOME = [string]::IsNullOrWhiteSpace($path) ? $([string]::IsNullOrWhiteSpace($script:Java_Default) ? $null : $script:Java_Default) : $path
+                }
+                else {
+                    $item.Build.JAVA_HOME = [string]::IsNullOrWhiteSpace($script:Java_Default) ? $null : $script:Java_Default
                 }
                 $ReturnSources += [SourceSubModule]::new($item)
             }
