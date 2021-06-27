@@ -45,10 +45,10 @@ function DownloadFile {
     )
     $file = Split-Path -Path "$URL" -Leaf
     if (-not (Test-Path -Path $file)) {
-        Write-Host "Downloading $file..."
+        Write-Console "Downloading $file..."
         $progressPreference = 'silentlyContinue'
         Invoke-WebRequest -Uri $url -OutFile $file
-        Write-Host \"$file downloaded.\"
+        Write-Console "$file downloaded."
     }
 
 }
@@ -58,10 +58,10 @@ function DownloadFileProvideName {
         [string]$File
     )
     if (-not (Test-Path -Path $File)) {
-        Write-Host "Downloading $File..."
+        Write-Console "Downloading $File..."
         $progressPreference = 'silentlyContinue'
         Invoke-WebRequest -Uri $url -OutFile $File
-        Write-Host \"$File downloaded.\"
+        Write-Console "$File downloaded."
     }
 
 }
@@ -96,6 +96,7 @@ function GitApplyPatch {
     }
     $PatchString | Out-File -FilePath $patchFile
     ConvertLineEndingsToLF -Path $patchFile
+    Write-Console "Applying GIT patch file $patchFile"
     git apply --ignore-space-change --ignore-whitespace $patchFile
     Remove-Item -Path $patchFile -Force
 }
