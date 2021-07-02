@@ -55,8 +55,9 @@ function DownloadFile {
 function DownloadFileProvideName {
     param (
         [string]$URL,
-        [string]$File
+        [Parameter(Mandatory=$false)][string]$File
     )
+    if ([string]::IsNullOrEmpty($File)) { $File = Join-Path -Path (Resolve-Path -Path .) -ChildPath (Split-Path -Path "$URL" -Leaf) }
     if (-not (Test-Path -Path $File)) {
         Write-Console "Downloading $File..."
         $progressPreference = 'silentlyContinue'
