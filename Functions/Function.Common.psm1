@@ -98,5 +98,5 @@ function GitApplyPatch {
     ConvertLineEndingsToLF -Path $patchFile
     Write-Console "Applying GIT patch file $patchFile"
     git apply --ignore-space-change --ignore-whitespace $patchFile
-    Remove-Item -Path $patchFile -Force
+    # Remove-Item -Path $patchFile -Force
 }
