@@ -51,7 +51,8 @@
                 "VersionCommand": { "oneOf": [ {"type": "string" },{ "type": "array", "items": { "type": "string" } } ] },
                 "Output":         { "type": "string"  },
                 "PerformBuild":   { "type": "boolean" },
-                "JAVA_HOME":      { "type": "integer" }
+                "JAVA_HOME":      { "type": "integer" },
+                "JAVA_OPTS":      { "type": "string" }
             }
         },
         "typeRemoteRepo": {

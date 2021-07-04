@@ -238,20 +238,25 @@ class BuildTypeJava : BuildType {
 # Declare Class BuildTypeGradle #
 #################################
 class BuildTypeGradle : BuildTypeJava {
+    [string]$JAVA_OPTS
     # -DXlint:none to remove Linting warning from showing up at all
     [string] static $gradlew = 'java "-Dfile.encoding=UTF-8" "-Dsun.stdout.encoding=UTF-8" "-Dsun.stderr.encoding=UTF-8" "-Dorg.gradle.appname=gradlew" -classpath ".\gradle\wrapper\gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain' # -Xmx64m -Xms64m
     # Changed the following line to above in order to bypass error issues with batch file incompatibilities. Added UTF-8 encoding to reduce compilation warnings
     # [string] static $gradlew = '.\gradlew.bat'
     BuildTypeGradle() : base('build',$null,$null,$null,'properties','build\libs\*.jar',$true,$null) {}
-    BuildTypeGradle([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[string]$Output,[System.Boolean]$PerformBuild,[string]$JAVA_HOME) : base($Command,$InitCommand,$PreCommand,$PostCommand,$VersionCommand,$Output,$PerformBuild,$JAVA_HOME) {}
+    BuildTypeGradle([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[string]$Output,[System.Boolean]$PerformBuild,[string]$JAVA_HOME,[string]$JAVA_OPTS) : base($Command,$InitCommand,$PreCommand,$PostCommand,$VersionCommand,$Output,$PerformBuild,$JAVA_HOME) {
+        $this.JAVA_OPTS = $JAVA_OPTS
+    }
     BuildTypeGradle([Hashtable]$Value) : base ($Value) {
         if(-not $Value.Contains('Command')) { $this.Command = 'build' }
         if(-not $Value.Contains('VersionCommand')) { $this.VersionCommand = 'properties' }
         if(-not $Value.Contains('Output')) { $this.Output = 'build\libs\*.jar' }
+        if($Value.Contains('JAVA_OPTS')) { $this.JAVA_OPTS = $Value.JAVA_OPTS }
     }
     [string]GetCommand() {
         [string]$buildCommand = [string]::IsNullOrWhiteSpace($this.Command) ? 'build' : $this.Command
-        return "$([BuildTypeGradle]::gradlew) $buildCommand --no-daemon --quiet --warning-mode=none --console=rich" #-`"Dorg.gradle.logging.level`"=`"quiet`" -`"Dorg.gradle.warning.mode`"=`"none`" -`"Dorg.gradle.console`"=`"rich`"
+        [string]$gradlewCommand = [string]::IsNullOrWhiteSpace($this.JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '^java', "java $($this.JAVA_OPTS)"
+        return "$gradlewCommand $buildCommand --no-daemon --quiet --warning-mode=none --console=rich"
     }
     [string]GetVersion(){ return $this.GetVersion($false) }
     [string]GetVersion([switch]$RawVersion) {
@@ -265,10 +270,11 @@ class BuildTypeGradle : BuildTypeJava {
                 $this.CheckGradleInstall()
                 $this.PushJAVA_HOME()
                 #.\gradlew.bat $versionCommand --no-daemon --quiet --warning-mode=none --console=rich)
-                [Object[]]$tempReturn  = (Invoke-Expression -Command "$([BuildTypeGradle]::gradlew) $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
+                [string]$gradlewCommand = [string]::IsNullOrWhiteSpace($this.JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '^java', "java $($this.JAVA_OPTS)"
+                [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
                 #Sometimes gradle needs to be executed once before it will return without an error.
                 if(($null -ne $tempReturn) -and ($tempReturn -imatch 'A problem occurred configuring root project')) {
-                    [Object[]]$tempReturn  = (Invoke-Expression -Command "$([BuildTypeGradle]::gradlew) $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
+                    [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
                 }
                 $this.PopJAVA_HOME()
                 [string]$tempReturn = $null -eq $tempReturn ? 'ERROR CHECKING VERSION' : [System.String]::Join("`r`n",$tempReturn)
