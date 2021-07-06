@@ -5,12 +5,14 @@ function BuildSpigot {
         [string]$JDKPath,
         [Parameter(Mandatory=$false)][Switch]$Remapped,
         [Parameter(Mandatory=$false)][Switch]$ForceBuild,
-        [Parameter(Mandatory=$false)][Switch]$ForceInstall
+        [Parameter(Mandatory=$false)][Switch]$ForceInstall,
+        [Parameter(Mandatory=$false)][Switch]$SkipCraftBukkitCheck,
+        [Parameter(Mandatory=$false)][Switch]$SkipSpigotCheck
     )
     $spigotFile = Join-Path -Path "$ToolPath" -ChildPath "spigot-$Version.jar"
     $bukkitFile = Join-Path -Path "$ToolPath" -ChildPath "craftbukkit-$Version.jar"
     Write-Console "Checking for Spigot and CraftBukkit $Version builds" -Title "Info"
-    if ($ForceBuild -or -not (Test-Path -Path $spigotFile) -or -not (Test-Path -Path $bukkitFile)) {
+    if ($ForceBuild -or (-not (Test-Path -Path $spigotFile) -and -not $SkipSpigotCheck) -or (-not (Test-Path -Path $bukkitFile) -and -not $SkipCraftBukkitCheck)) {
         Push-Location -Path "$ToolPath" -StackName 'SpigotBuild'
         $javaCommand = [BuildTypeJava]::PushEnvJava($JDKPath)
         Write-Console "Building Craftbukkit and Spigot versions $Version"
