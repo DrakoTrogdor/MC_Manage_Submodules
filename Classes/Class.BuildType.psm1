@@ -271,7 +271,8 @@ class BuildTypeGradle : BuildTypeJava {
                 $this.PushJAVA_HOME()
                 #.\gradlew.bat $versionCommand --no-daemon --quiet --warning-mode=none --console=rich)
                 [string]$gradlewCommand = [string]::IsNullOrWhiteSpace($this.JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '^java', "java $($this.JAVA_OPTS)"
-                [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
+                # --configure-on-demand used to speed up version info by not configuring projects that are not being used.
+                [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand $versionCommand --no-daemon --configure-on-demand --quiet --warning-mode=none --console=plain *>&1")
                 #Sometimes gradle needs to be executed once before it will return without an error.
                 if(($null -ne $tempReturn) -and ($tempReturn -imatch 'A problem occurred configuring root project')) {
                     [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
