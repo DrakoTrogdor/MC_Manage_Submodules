@@ -20,7 +20,7 @@
             "required": ["version","path"],
             "additionalProperties": false,
             "properties": {
-                "version": { "type": "integer", "enum": [8,9,10,11,12,13,14,15,16] },
+                "version": { "type": "integer", "enum": [8,9,10,11,12,13,14,15,16,17] },
                 "path":    { "type": "string" }
             }
         },
