@@ -36,7 +36,8 @@
                 "13": { "type": "string" },
                 "14": { "type": "string" },
                 "15": { "type": "string" },
-                "16": { "type": "string" }
+                "16": { "type": "string" },
+                "17": { "type": "string" }
              }
         },
         "typeBuildType":{
@@ -158,7 +159,7 @@
                 "Java_Default": {
                     "description": "Default version of Java to use when JAVA_HOME is not defined for a submodule",
                     "type": "integer",
-                    "enum": [8,9,10,11,12,13,14,15,16]
+                    "enum": [8,9,10,11,12,13,14,15,16,17]
                 },
                 "ShowDebugInfo":{
                     "description": "Show debugging information",
