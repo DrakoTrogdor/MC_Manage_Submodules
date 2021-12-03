@@ -73,7 +73,7 @@ class BuildType {
         return $return
     }
     [string]ReplaceScriptJAVA_HOME([string]$Value) {
-        for ($version = 8; $version -le 16; $version++) {
+        for ($version = 8; $version -le 17; $version++) {
             $Value = $Value.Replace("`$(`$script:JAVA_HOME.$($version))",$global:JAVA_HOME.$version)
         }
         return $Value
