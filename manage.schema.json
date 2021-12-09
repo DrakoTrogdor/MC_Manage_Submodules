@@ -127,6 +127,8 @@
                         "Script",
                         "Plugin",
                         "Module",
+                        "ServerModule",
+                        "ClientModule",
                         "DataPack",
                         "ResourcePack",
                         "NodeDependancy"
