@@ -178,9 +178,10 @@ function Show-DirectoryInfo() {
     Write-Host "Server Directories:" -ForegroundColor Green
     Write-Host "`tServer:         $dirServer" -ForegroundColor Green
     Write-Host "`tPlugins:        $dirPlugins" -ForegroundColor Green
+    Write-Host "`tServer Mods:    $dirServerModules" -ForegroundColor Green
     Write-Host "`tData Packs:     $dirDataPacks" -ForegroundColor Green
     Write-Host "Client Directories:" -ForegroundColor Green
-    Write-Host "`tClient Mods:    $dirModules" -ForegroundColor Green
+    Write-Host "`tClient Mods:    $dirClientModules" -ForegroundColor Green
     Write-Host "`tResource Packs: $dirResourcePacks" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Green
     Write-Host "`tmyGit_URL:      $($script:myGit_URL)" -ForegroundColor Green
@@ -210,11 +211,13 @@ $dirSources = Join-Path -Path $dirRoot -ChildPath src
 ## Server directories
 $dirServer = $dirRoot
 $dirPlugins = Join-Path -Path $dirServer -ChildPath plugins
+$dirServerModules = Join-Path -Path $dirServer -ChildPath mods
 $dirWorlds = Join-Path -Path $dirServer -ChildPath worlds -AdditionalChildPath world
 $dirDataPacks = Join-Path -Path $dirWorlds -ChildPath datapacks
 
 ## Client directories
 $dirModules = Join-Path -Path $dirRoot -ChildPath .minecraft -AdditionalChildPath mods
+$dirClientModules = Join-Path -Path $dirRoot -ChildPath .minecraft -AdditionalChildPath mods
 $dirResourcePacks = Join-Path -Path $dirRoot -ChildPath .minecraft -AdditionalChildPath resourcepacks
 
 ## Blank [SourceSubModule] array
@@ -294,7 +297,7 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
                 if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
             }
 
@@ -508,7 +511,7 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
                 if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
             }
             if ($updatedFiles.Count -gt 0) {
@@ -523,7 +526,7 @@ do { # Main loop
         'Build - Compile One'{
             Push-Location -Path $dirSources -StackName 'MainLoop'
             $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dirStartup
-            [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+            [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
             if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { Write-Host "Updated Files...`r`n$('=' * 120)`r`n`t$buildReturn" -ForegroundColor Green }
             PressAnyKey
             break

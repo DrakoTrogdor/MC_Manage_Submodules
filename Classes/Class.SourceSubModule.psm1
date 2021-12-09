@@ -10,6 +10,8 @@ enum SubModuleType {
     Script
     Plugin
     Module
+    ServerModule
+    ClientModule
     DataPack
     ResourcePack
     NodeDependancy
@@ -50,6 +52,8 @@ class SourceSubModule {
                 "Script"         { $tmpSubModuleType = [SubModuleType]::Script;         break }
                 "Plugin"         { $tmpSubModuleType = [SubModuleType]::Plugin;         break }
                 "Module"         { $tmpSubModuleType = [SubModuleType]::Module;         break }
+                "ServerModule"   { $tmpSubModuleType = [SubModuleType]::ServerModule;   break }
+                "ClientModule"   { $tmpSubModuleType = [SubModuleType]::ClientModule;   break }
                 "DataPack"       { $tmpSubModuleType = [SubModuleType]::DataPack;       break }
                 "ResourcePack"   { $tmpSubModuleType = [SubModuleType]::ResourcePack;   break }
                 "NodeDependancy" { $tmpSubModuleType = [SubModuleType]::NodeDependancy; break }
@@ -142,6 +146,8 @@ class SourceSubModule {
             [string]$PathScript,
             [string]$PathPlugin,
             [string]$PathModule,
+            [string]$PathServerModule,
+            [string]$PathClientModule,
             [string]$PathDataPack,
             [string]$PathResourcePack,
             [string]$PathNodeDependancy,
@@ -172,6 +178,8 @@ class SourceSubModule {
             Script          { $copyToFilePath = $PathScript;            break; }
             Plugin          { $copyToFilePath = $PathPlugin;            break; }
             Module          { $copyToFilePath = $PathModule;            break; }
+            ServerModule    { $copyToFilePath = $PathServerModule;      break; }
+            ClientModule    { $copyToFilePath = $PathClientModule;      break; }
             DataPack        { $copyToFilePath = $PathDataPack;          break; }
             ResourcePack    { $copyToFilePath = $PathResourcePack;      break; }
             NodeDependancy  { $copyToFilePath = $PathNodeDependancy;    break; }
