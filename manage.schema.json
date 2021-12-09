@@ -126,6 +126,7 @@
                         "Server",
                         "Script",
                         "Plugin",
+                        "VelocityPlugin",
                         "Module",
                         "ServerModule",
                         "ClientModule",

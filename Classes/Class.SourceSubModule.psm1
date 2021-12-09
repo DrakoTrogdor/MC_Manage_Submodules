@@ -9,6 +9,7 @@ enum SubModuleType {
     Server
     Script
     Plugin
+    VelocityPlugin
     Module
     ServerModule
     ClientModule
@@ -51,6 +52,7 @@ class SourceSubModule {
                 "Server"         { $tmpSubModuleType = [SubModuleType]::Server;         break }
                 "Script"         { $tmpSubModuleType = [SubModuleType]::Script;         break }
                 "Plugin"         { $tmpSubModuleType = [SubModuleType]::Plugin;         break }
+                "VelocityPlugin" { $tmpSubModuleType = [SubModuleType]::VelocityPlugin; break }
                 "Module"         { $tmpSubModuleType = [SubModuleType]::Module;         break }
                 "ServerModule"   { $tmpSubModuleType = [SubModuleType]::ServerModule;   break }
                 "ClientModule"   { $tmpSubModuleType = [SubModuleType]::ClientModule;   break }
@@ -145,6 +147,7 @@ class SourceSubModule {
             [string]$PathServer,
             [string]$PathScript,
             [string]$PathPlugin,
+            [string]$PathVelocityPlugin,
             [string]$PathModule,
             [string]$PathServerModule,
             [string]$PathClientModule,
@@ -177,6 +180,7 @@ class SourceSubModule {
             Server          { $copyToFilePath = $PathServer;            break; }
             Script          { $copyToFilePath = $PathScript;            break; }
             Plugin          { $copyToFilePath = $PathPlugin;            break; }
+            VelocityPlugin  { $copyToFilePath = $PathVelocityPlugin;    break; }
             Module          { $copyToFilePath = $PathModule;            break; }
             ServerModule    { $copyToFilePath = $PathServerModule;      break; }
             ClientModule    { $copyToFilePath = $PathClientModule;      break; }

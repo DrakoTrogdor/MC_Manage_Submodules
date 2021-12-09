@@ -211,6 +211,7 @@ $dirSources = Join-Path -Path $dirRoot -ChildPath src
 ## Server directories
 $dirServer = $dirRoot
 $dirPlugins = Join-Path -Path $dirServer -ChildPath plugins
+$dirVelocityPlugins = Join-Path -Path $dirServer -ChildPath velocityplugins
 $dirServerModules = Join-Path -Path $dirServer -ChildPath mods
 $dirWorlds = Join-Path -Path $dirServer -ChildPath worlds -AdditionalChildPath world
 $dirDataPacks = Join-Path -Path $dirWorlds -ChildPath datapacks
@@ -297,7 +298,7 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
                 if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
             }
 
@@ -511,7 +512,7 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
                 if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
             }
             if ($updatedFiles.Count -gt 0) {
@@ -526,7 +527,7 @@ do { # Main loop
         'Build - Compile One'{
             Push-Location -Path $dirSources -StackName 'MainLoop'
             $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dirStartup
-            [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+            [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
             if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { Write-Host "Updated Files...`r`n$('=' * 120)`r`n`t$buildReturn" -ForegroundColor Green }
             PressAnyKey
             break
