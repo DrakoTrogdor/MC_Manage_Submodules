@@ -146,7 +146,7 @@ class BuildType {
         # Everything was removed by the "removables" foreach loop
         if ($return -like '-') { return '0.0.0' }
 
-        [string]$mcVer  = "(?:mc)?1\.1[6-7](?:\.[xX0-9])?(?:\.?[0-9a-f]{7})?" #This matches the versions since 1.16 (Optional commit after, due to ModMenu)
+        [string]$mcVer  = "(?:mc)?1\.1[6-8](?:\.[xX0-9])?(?:\.?[0-9a-f]{7})?" #This matches the versions since 1.16 (Optional commit after, due to ModMenu)
         [string]$semVer = "v?(?:\d+\.\d+\.(?:\d+|[xX0-9])|\d+\.(?:\d+|[xX0-9])|(?:\d+|[xX0-9]))" # Version like number
 
         # If all that is left is an MC version and a single digit version format it as MCVersion.Version
@@ -273,8 +273,8 @@ class BuildTypeGradle : BuildTypeJava {
                 [string]$gradlewCommand = [string]::IsNullOrWhiteSpace($this.JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '^java', "java $($this.JAVA_OPTS)"
                 # --configure-on-demand used to speed up version info by not configuring projects that are not being used.
                 [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand $versionCommand --no-daemon --configure-on-demand --quiet --warning-mode=none --console=plain *>&1")
-                #Sometimes gradle needs to be executed once before it will return without an error.
-                if(($null -ne $tempReturn) -and ($tempReturn -imatch 'A problem occurred configuring root project')) {
+                #Sometimes gradle needs to be executed once before it will return without an error, also --configure-on-demand might not work properly.
+                if(($null -ne $tempReturn) -and (($tempReturn -imatch 'A problem occurred configuring root project') -or $tempReturn -imatch 'A problem occurred evaluating project.*')) {
                     [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
                 }
                 $this.PopJAVA_HOME()
