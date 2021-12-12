@@ -251,6 +251,8 @@ function CleanRootFolder {
     [string[]]$cleanArguments = @('clean')
     $cleanArguments += ($script:WhatIF ? '-nxfd' : '-xfd')
     $cleanArguments += @('-e','plugins/')
+    $cleanArguments += @('-e','mods/')
+    $cleanArguments += @('-e','velocityplugins/')
     $cleanArguments += @('-e','worlds/')
     $cleanArguments += @('-e','worlds/world/datapacks/')
     $cleanArguments += @('-e','.minecraft/mods/')
