@@ -146,7 +146,7 @@ class BuildType {
         # Everything was removed by the "removables" foreach loop
         if ($return -like '-') { return '0.0.0' }
 
-        [string]$mcVer  = "(?:mc)?1\.1[6-8](?:\.[xX0-9])?(?:\.?[0-9a-f]{7})?" #This matches the versions since 1.16 (Optional commit after, due to ModMenu)
+        [string]$mcVer  = "(?:mc)?1\.1[6-9](?:\.[xX0-9])?(?:\.?[0-9a-f]{7})?" #This matches the versions since 1.16 (Optional commit after, due to ModMenu)
         [string]$semVer = "v?(?:\d+\.\d+\.(?:\d+|[xX0-9])|\d+\.(?:\d+|[xX0-9])|(?:\d+|[xX0-9]))" # Version like number
 
         # If all that is left is an MC version and a single digit version format it as MCVersion.Version
