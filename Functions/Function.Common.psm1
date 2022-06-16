@@ -9,36 +9,58 @@ function BuildSpigot {
         [Parameter(Mandatory=$false)][Switch]$SkipCraftBukkitCheck,
         [Parameter(Mandatory=$false)][Switch]$SkipSpigotCheck
     )
-    $spigotFile = Join-Path -Path "$ToolPath" -ChildPath "spigot-$Version.jar"
-    $bukkitFile = Join-Path -Path "$ToolPath" -ChildPath "craftbukkit-$Version.jar"
+    $spigotFile  = Join-Path -Path "$ToolPath" -ChildPath "spigot-$Version$($Remapped ? '-remapped' : '').jar"
+    $bukkitFile  = Join-Path -Path "$ToolPath" -ChildPath "craftbukkit-$Version$($Remapped ? '-remapped' : '').jar"
+    $spigotBuild = Join-Path -Path "$ToolPath" -ChildPath "Build" -AdditionalChildPath "spigot-$Version.jar"
+    $bukkitBuild = Join-Path -Path "$ToolPath" -ChildPath "Build" -AdditionalChildPath "craftbukkit-$Version.jar"
+
     Write-Console "Checking for Spigot and CraftBukkit $Version builds" -Title "Info"
     if ($ForceBuild -or (-not (Test-Path -Path $spigotFile) -and -not $SkipSpigotCheck) -or (-not (Test-Path -Path $bukkitFile) -and -not $SkipCraftBukkitCheck)) {
         Push-Location -Path "$ToolPath" -StackName 'SpigotBuild'
+        if(!$(Test-Path .\Build)) { New-Item -ItemType Directory -Path .\Build }
+
         $javaCommand = [BuildTypeJava]::PushEnvJava($JDKPath)
         Write-Console "Building Craftbukkit and Spigot versions $Version"
         if ($Remapped) {
-            $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT --remapped" -NoNewWindow -PassThru
+            $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT --remapped --output-dir Build" -NoNewWindow -PassThru
         } else {
-            $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT" -NoNewWindow -PassThru
+            $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT --output-dir Build" -NoNewWindow -PassThru
         }
         $javaProcess.WaitForExit()
         [BuildTypeJava]::PopEnvJava()
+
+        Move-Item -Path $spigotBuild -Destination $spigotFile -Force -EA:0
+        Move-Item -Path $bukkitBuild -Destination $bukkitFile -Force -EA:0
+
         Pop-Location -StackName 'SpigotBuild'
     }
-    if ($ForceInstall -or ($null -ne (mvn dependency:get -Dartifact="org.spigotmc:spigot:$Version-R0.1-SNAPSHOT" -o -q))){
-        Write-Console "Installing spigot $Version-R0.1-SNAPSHOT to maven local repository"
-        if ($Remapped) { mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -Dfile="$spigotFile" }
-        else { mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$spigotFile" }
+    if ($Remapped) {
+        if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -o -q))){
+            Write-Host "Installing spigot $Version-R0.1-SNAPSHOT-remapped-mojang to maven local repository"
+            mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -Dfile="$spigotFile"
+        }
+        if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -o -q))){
+            Write-Host "Installing spigot-API $Version-R0.1-SNAPSHOT-remapped-mojang to maven local repository"
+            mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -Dfile="$spigotFile"
+        }
+        if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -o -q))){
+            Write-Host "Installing craftbukkit $Version-R0.1-SNAPSHOT-remapped-mojang to maven local repository"
+            mvn install:install-file -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -Dfile="$bukkitFile"
+        }
     }
-    if ($ForceInstall -or ($null -ne (mvn dependency:get -Dartifact="org.spigotmc:spigot-api:$Version-R0.1-SNAPSHOT" -o -q))) {
-        Write-Console "Installing spigot-API $Version-R0.1-SNAPSHOT to maven local repository"
-        if ($Remapped) { mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -Dfile="$spigotFile" }
-        else { mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$spigotFile" }
-    }
-    if ($ForceInstall -or ($null -ne (mvn dependency:get -Dartifact="org.bukkit:craftbukkit:$Version-R0.1-SNAPSHOT" -o -q))) {
-        Write-Console "Installing craftbukkit $Version-R0.1-SNAPSHOT to maven local repository"
-        if ($Remapped) { mvn install:install-file -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -Dfile="$bukkitFile" }
-        else { mvn install:install-file -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$bukkitFile" }
+    else {
+        if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="" -o -q))){
+            Write-Host "Installing spigot $Version-R0.1-SNAPSHOT to maven local repository"
+            mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$spigotFile"
+        }
+        if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="" -o -q))){
+            Write-Host "Installing spigot-API $Version-R0.1-SNAPSHOT to maven local repository"
+            mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$spigotFile"
+        }
+        if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="" -o -q))){
+            Write-Host "Installing craftbukkit $Version-R0.1-SNAPSHOT to maven local repository"
+            mvn install:install-file -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$bukkitFile"
+        }
     }
 }
 function DownloadFile {
