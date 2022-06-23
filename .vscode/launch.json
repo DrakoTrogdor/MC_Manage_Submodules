@@ -5,6 +5,13 @@
    "version": "0.2.0",
    "configurations": [
         {
+            "name": "PowerShell Launch Script",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/../../manage.ps1",
+            "cwd": "${workspaceFolder}/../../"
+        },
+        {
             "name": ".NET Core Launch (console)",
             "type": "coreclr",
             "request": "launch",

@@ -50,7 +50,18 @@ class BuildType {
         return $this.GetVersion($false)
     }
     [string]GetVersion([switch]$RawVersion) {
-        if([string]::IsNullOrWhiteSpace($this.generatedRawVersion))   { $this.generatedRawVersion   = $this.VersionCommand }
+        if([string]::IsNullOrWhiteSpace($this.generatedRawVersion))   {
+            if ([string]::IsNullOrWhiteSpace($this.VersionCommand)) {
+                $this.generatedRawVersion = ""
+            }
+            elseif ($this.VersionCommand.StartsWith("PowerShell:")) {
+                [String]$tempCommand = $this.VersionCommand.TrimStart("PowerShell:")
+                $this.generatedRawVersion  = (Invoke-Expression -Command "$tempCommand")
+            }
+            else {
+                $this.generatedRawVersion   = $this.VersionCommand
+            }
+        }
         if([string]::IsNullOrWhiteSpace($this.generatedCleanVersion)) { $this.generatedCleanVersion = $this.CleanVersion($this.generatedRawVersion) }
         if($RawVersion) { return $this.generatedRawVersion }
         else { return $this.generatedCleanVersion }
