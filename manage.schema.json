@@ -44,6 +44,7 @@
             "type":"object",
             "additionalProperties": false,
             "properties": {
+                "Comment":        { "type":"string" },
                 "Type":           { "type": "string", "enum": ["Base","Java","Gradle","Maven","NPM"] },
                 "Command":        { "oneOf": [ {"type": "string" },{ "type": "array", "items": { "type": "string" } } ] },
                 "InitCommand":    { "oneOf": [ {"type": "string" },{ "type": "array", "items": { "type": "string" } } ] },
@@ -57,6 +58,7 @@
             }
         },
         "typeRemoteRepo": {
+            "Comment":        { "type":"string" },
             "URL":            { "type": "string"  },
             "DefaultBranch":  { "type": "string"  },
             "IgnoreBranches": {
@@ -71,6 +73,7 @@
             "additionalProperties": false,
             "properties": {
                 "Name":           { "type": "string"  },
+                "Comment":        { "type":"string" },
                 "Pull":           { "type": "boolean" },
                 "LockAtCommit":   { "type": "string"  },
                 "Remotes":        {
