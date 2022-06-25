@@ -140,7 +140,7 @@ class BuildType {
 
 
         [string]$sep = '[' + [System.Text.RegularExpressions.Regex]::Escape('-+') + ']'
-        [string[]]$removables = @('custom','local','snapshot','(?:alpha|beta|dev|fabric|pre|rc|arne)(?:[\.\+\-]?\d+(?=[\.\+\-]|$))*','\d{2}w\d{2}[a-z]','v\d{6,}','[0-9a-f]{7}')
+        [string[]]$removables = @('(?:custom|local|snapshot|nightly)','(?:alpha|beta|dev|fabric|pre|rc|arne)(?:[\.\+\-]?\d+(?=[\.\+\-]|$))*','\d{2}w\d{2}[a-z]','v\d{6,}','[0-9a-f]{7,8}','R\d\.\d','kotlin(?:\.\d+){3}(?:\.local)?')
 		foreach ($item in $removables) {
             [System.Boolean]$matchFound = $false
             do {
@@ -157,7 +157,7 @@ class BuildType {
         # Everything was removed by the "removables" foreach loop
         if ($return -like '-') { return '0.0.0' }
 
-        [string]$mcVer  = "(?:mc)?1\.1[6-9](?:\.[xX0-9])?(?:\.?[0-9a-f]{7})?" #This matches the versions since 1.16 (Optional commit after, due to ModMenu)
+        [string]$mcVer  = "(?:mc)?1\.1[6-9](?:\.[xX0-9])?(?:\.?[0-9a-f]{7,8})?" #This matches the versions since 1.16 (Optional 7 to 8 digit commit'ish)
         [string]$semVer = "v?(?:\d+\.\d+\.(?:\d+|[xX0-9])|\d+\.(?:\d+|[xX0-9])|(?:\d+|[xX0-9]))" # Version like number
 
         # If all that is left is an MC version and a single digit version format it as MCVersion.Version

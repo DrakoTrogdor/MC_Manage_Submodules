@@ -540,6 +540,7 @@ do { # Main loop
                 $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
                 Write-Host $currentSource.GetFinalName()
+                $currentSource.Build.InvokeInitBuild()
                 Write-Host "`tRaw Version  : $($currentSource.Build.GetVersion($true))"
                 Write-Host "`tClean Version: $($currentSource.Build.GetVersion())"
             }
