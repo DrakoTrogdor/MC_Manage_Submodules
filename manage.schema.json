@@ -51,6 +51,7 @@
                 "PreCommand":     { "oneOf": [ {"type": "string" },{ "type": "array", "items": { "type": "string" } } ] },
                 "PostCommand":    { "oneOf": [ {"type": "string" },{ "type": "array", "items": { "type": "string" } } ] },
                 "VersionCommand": { "oneOf": [ {"type": "string" },{ "type": "array", "items": { "type": "string" } } ] },
+                "Patches":        { "oneOf": [ {"type": "string" },{ "type": "array", "items": { "type": "string" } } ] },
                 "Output":         { "type": "string"  },
                 "PerformBuild":   { "type": "boolean" },
                 "JAVA_HOME":      { "type": "integer" },
