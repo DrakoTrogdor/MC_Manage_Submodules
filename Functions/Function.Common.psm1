@@ -9,15 +9,23 @@ function BuildSpigot {
         [Parameter(Mandatory=$false)][Switch]$SkipCraftBukkitCheck,
         [Parameter(Mandatory=$false)][Switch]$SkipSpigotCheck
     )
-    $spigotFile  = Join-Path -Path "$ToolPath" -ChildPath "spigot-$Version$($Remapped ? '-remapped' : '').jar"
-    $bukkitFile  = Join-Path -Path "$ToolPath" -ChildPath "craftbukkit-$Version$($Remapped ? '-remapped' : '').jar"
-    $spigotBuild = Join-Path -Path "$ToolPath" -ChildPath "Build" -AdditionalChildPath "spigot-$Version.jar"
-    $bukkitBuild = Join-Path -Path "$ToolPath" -ChildPath "Build" -AdditionalChildPath "craftbukkit-$Version.jar"
+    $spigotFile     = Join-Path -Path "$ToolPath" -ChildPath "spigot-$Version$($Remapped ? '-remapped' : '').jar"
+    $bukkitFile     = Join-Path -Path "$ToolPath" -ChildPath "craftbukkit-$Version$($Remapped ? '-remapped' : '').jar"
+    $spigotBuild    = Join-Path -Path "$ToolPath" -ChildPath "Build" -AdditionalChildPath "spigot-$Version.jar"
+    $bukkitBuild    = Join-Path -Path "$ToolPath" -ChildPath "Build" -AdditionalChildPath "craftbukkit-$Version.jar"
+    $altBukkitBuild = Join-Path -Path "$ToolPath" -ChildPath "CraftBukkit\target" -AdditionalChildPath "craftbukkit-$Version-R0.1-SNAPSHOT.jar"
 
     Write-Console "Checking for Spigot and CraftBukkit $Version builds" -Title "Info"
     if ($ForceBuild -or (-not (Test-Path -Path $spigotFile) -and -not $SkipSpigotCheck) -or (-not (Test-Path -Path $bukkitFile) -and -not $SkipCraftBukkitCheck)) {
         Push-Location -Path "$ToolPath" -StackName 'SpigotBuild'
-        if(!$(Test-Path .\Build)) { New-Item -ItemType Directory -Path .\Build }
+
+        # Prepare filesystem
+        if(!$(Test-Path .\Build))      { New-Item    -Path .\Build        -ItemType Directory }
+        if($(Test-Path .\BuildData))   { Remove-Item -Path .\BuildData\   -Recurse -Force }
+        if($(Test-Path .\Bukkit))      { Remove-Item -Path .\Bukkit\      -Recurse -Force }
+        if($(Test-Path .\CraftBukkit)) { Remove-Item -Path .\CraftBukkit\ -Recurse -Force }
+        if($(Test-Path .\Spigot))      { Remove-Item -Path .\Spigot\      -Recurse -Force }
+        if($(Test-Path .\work))        { Remove-Item -Path .\work\        -Recurse -Force }
 
         $javaCommand = [BuildTypeJava]::PushEnvJava($JDKPath)
         Write-Console "Building Craftbukkit and Spigot versions $Version"
@@ -30,10 +38,12 @@ function BuildSpigot {
         [BuildTypeJava]::PopEnvJava()
 
         Move-Item -Path $spigotBuild -Destination $spigotFile -Force -EA:0
-        Move-Item -Path $bukkitBuild -Destination $bukkitFile -Force -EA:0
+        if (Test-Path -Path $bukkitBuild) { Move-Item -Path $bukkitBuild -Destination $bukkitFile -Force -EA:0 }
+        elseif (Test-Path -Path $altBukkitBuild) { Copy-Item -Path $altBukkitBuild -Destination $bukkitFile -Force -EA:0 }
 
         Pop-Location -StackName 'SpigotBuild'
     }
+    <#
     if ($Remapped) {
         if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -o -q))){
             Write-Host "Installing spigot $Version-R0.1-SNAPSHOT-remapped-mojang to maven local repository"
@@ -48,20 +58,19 @@ function BuildSpigot {
             mvn install:install-file -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="remapped-mojang" -Dfile="$bukkitFile"
         }
     }
-    else {
-        if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="" -o -q))){
-            Write-Host "Installing spigot $Version-R0.1-SNAPSHOT to maven local repository"
-            mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$spigotFile"
-        }
-        if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="" -o -q))){
-            Write-Host "Installing spigot-API $Version-R0.1-SNAPSHOT to maven local repository"
-            mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$spigotFile"
-        }
-        if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="" -o -q))){
-            Write-Host "Installing craftbukkit $Version-R0.1-SNAPSHOT to maven local repository"
-            mvn install:install-file -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$bukkitFile"
-        }
+    if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="" -o -q))){
+        Write-Host "Installing spigot $Version-R0.1-SNAPSHOT to maven local repository"
+        mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$spigotFile"
     }
+    if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="" -o -q))){
+        Write-Host "Installing spigot-API $Version-R0.1-SNAPSHOT to maven local repository"
+        mvn install:install-file -DgroupId='org.spigotmc' -DartifactId=spigot-api -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$spigotFile"
+    }
+    if ($ForceInstall -or ($null -ne (mvn dependency:get -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dclassifier="" -o -q))){
+        Write-Host "Installing craftbukkit $Version-R0.1-SNAPSHOT to maven local repository"
+        mvn install:install-file -DgroupId='org.bukkit' -DartifactId=craftbukkit -Dversion="$Version-R0.1-SNAPSHOT" -Dpackaging=jar -Dfile="$bukkitFile"
+    }
+    #>
 }
 function DownloadFile {
     param (
@@ -127,11 +136,16 @@ function GitApplyPatch {
     }
     $PatchString | Out-File -FilePath $patchFile
     ConvertLineEndingsToLF -Path $patchFile
-    Write-Console "Applying GIT patch file $patchFile"
-    git apply --ignore-space-change --ignore-whitespace $patchFile
+    GitApplyPatchFile -PatchFile $patchFile
     # Remove-Item -Path $patchFile -Force
 }
-
+function GitApplyPatchFile {
+    param (
+        [string]$PatchFile
+    )
+    Write-Console "Applying GIT patch file $PatchFile"
+    git apply --ignore-space-change --ignore-whitespace $PatchFile
+}
 function ReplaceInFile {
     param (
         [string]$SearchRegExp,
