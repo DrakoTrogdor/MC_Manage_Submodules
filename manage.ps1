@@ -175,6 +175,7 @@ function Show-DirectoryInfo() {
     Write-Host "Base Directories:" -ForegroundColor Green
     Write-Host "`tRoot:           $dirRoot" -ForegroundColor Green
     Write-Host "`tSources:        $dirSources" -ForegroundColor Green
+    Write-Host "`tDependancies:   $dirSubModuleDependancies" -ForegroundColor Green
     Write-Host "Server Directories:" -ForegroundColor Green
     Write-Host "`tServer:         $dirServer" -ForegroundColor Green
     Write-Host "`tPlugins:        $dirPlugins" -ForegroundColor Green
@@ -213,6 +214,7 @@ $dirServer = $dirRoot
 $dirPlugins = Join-Path -Path $dirServer -ChildPath plugins
 $dirVelocityPlugins = Join-Path -Path $dirServer -ChildPath velocityplugins
 $dirServerModules = Join-Path -Path $dirServer -ChildPath mods
+$dirSubModuleDependancies = Join-Path -Path $dirServer -ChildPath dependencies
 $dirWorlds = Join-Path -Path $dirServer -ChildPath worlds -AdditionalChildPath world
 $dirDataPacks = Join-Path -Path $dirWorlds -ChildPath datapacks
 
@@ -300,7 +302,7 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
                 if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
             }
 
@@ -514,7 +516,7 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
                 if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
             }
             if ($updatedFiles.Count -gt 0) {
@@ -529,7 +531,7 @@ do { # Main loop
         'Build - Compile One'{
             Push-Location -Path $dirSources -StackName 'MainLoop'
             $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dirStartup
-            [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$script:CleanAndPullRepo,$WhatIF)
+            [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
             if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { Write-Host "Updated Files...`r`n$('=' * 120)`r`n`t$buildReturn" -ForegroundColor Green }
             PressAnyKey
             break

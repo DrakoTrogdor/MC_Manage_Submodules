@@ -1,67 +1,29 @@
 using module .\Class.BuildType.psm1
 using module .\Class.Repo.psm1
 
-#################
-# Declare Enums #
-#################
-enum SubModuleType {
-    Other
-    Server
-    Script
-    Plugin
-    VelocityPlugin
-    Module
-    ServerModule
-    ClientModule
-    DataPack
-    ResourcePack
-    NodeDependancy
-}
-
 ###################
 # Declare Classes #
 ###################
 class SourceSubModule {
     [string]$Name
-    [SubModuleType]$SubModuleType
     [GitRepo]$Repo
     [BuildType]$Build
     [string]$FinalName
-    Init([string]$Name, [SubModuleType]$SubModuleType, [GitRepo]$Repo, [BuildType]$Build, [string]$FinalName) {
+    Init([string]$Name, [GitRepo]$Repo, [BuildType]$Build, [string]$FinalName) {
         $this.Name = $Name
-        $this.SubModuleType = $SubModuleType
         $this.Repo = $Repo
         $this.Build = $Build
         $this.FinalName = $FinalName
     }
     SourceSubModule() {
-       $this.Init('', [SubModuleType]::Other, [GitRepo]::new(), [BuildType]::new(), $null)
+       $this.Init('', [GitRepo]::new(), [BuildType]::new(), $null)
     }
-    SourceSubModule ([string]$Name, [SubModuleType]$SubModuleType, [GitRepo]$Repo, [BuildType]$Build, [string]$FinalName) {
-        $this.Init($Name, $SubModuleType, $Repo, $Build, $FinalName)
+    SourceSubModule ([string]$Name, [GitRepo]$Repo, [BuildType]$Build, [string]$FinalName) {
+        $this.Init($Name, $Repo, $Build, $FinalName)
     }
     SourceSubModule([Hashtable]$Value) {
         # Set the Name string
         [string]$tmpName = $Value.Contains('Name') ? [string]$Value.Name : $null
-
-        # Set the Submodule Type enum
-        [SubModuleType]$tmpSubModuleType = [SubModuleType]::Other
-        if ($Value.Contains('SubmoduleType')){
-            switch ($Value.SubmoduleType) {
-                "Other"          { $tmpSubModuleType = [SubModuleType]::Other;          break }
-                "Server"         { $tmpSubModuleType = [SubModuleType]::Server;         break }
-                "Script"         { $tmpSubModuleType = [SubModuleType]::Script;         break }
-                "Plugin"         { $tmpSubModuleType = [SubModuleType]::Plugin;         break }
-                "VelocityPlugin" { $tmpSubModuleType = [SubModuleType]::VelocityPlugin; break }
-                "Module"         { $tmpSubModuleType = [SubModuleType]::Module;         break }
-                "ServerModule"   { $tmpSubModuleType = [SubModuleType]::ServerModule;   break }
-                "ClientModule"   { $tmpSubModuleType = [SubModuleType]::ClientModule;   break }
-                "DataPack"       { $tmpSubModuleType = [SubModuleType]::DataPack;       break }
-                "ResourcePack"   { $tmpSubModuleType = [SubModuleType]::ResourcePack;   break }
-                "NodeDependancy" { $tmpSubModuleType = [SubModuleType]::NodeDependancy; break }
-                default          { $tmpSubModuleType = [SubModuleType]::Other                 }
-            }
-        }
 
         # Create a GitRepo class
         [GitRepo]$tmpRepo = $Value.Contains('Repo') ? [GitRepo]::new($Value.Repo) : [GitRepo]::new()
@@ -86,7 +48,7 @@ class SourceSubModule {
         [string]$tmpFinalName =  $Value.Contains('FinalName')       ? [string]$Value.FinalName          : $null
 
         # Complete constructor by executing the Init function
-        $this.Init($tmpName, $tmpSubModuleType, $tmpRepo, $tmpBuild, $tmpFinalName)
+        $this.Init($tmpName, $tmpRepo, $tmpBuild, $tmpFinalName)
     }
     [string]GetFinalName() {
         if ([string]::IsNullOrWhiteSpace($this.FinalName)){ return $this.Name }
@@ -154,6 +116,7 @@ class SourceSubModule {
             [string]$PathDataPack,
             [string]$PathResourcePack,
             [string]$PathNodeDependancy,
+            [string]$PathSubModuleDependancy,
             [switch]$PerformCleanAndPull,
             [switch]$WhatIF
     ){
@@ -175,23 +138,24 @@ class SourceSubModule {
 
         # Determine the copy to output file directory
         [string]$copyToFilePath = ''
-        switch ($this.SubModuleType) {
-            Other           { $copyToFilePath = $dirCurrentSource;      break; }
-            Server          { $copyToFilePath = $PathServer;            break; }
-            Script          { $copyToFilePath = $PathScript;            break; }
-            Plugin          { $copyToFilePath = $PathPlugin;            break; }
-            VelocityPlugin  { $copyToFilePath = $PathVelocityPlugin;    break; }
-            Module          { $copyToFilePath = $PathModule;            break; }
-            ServerModule    { $copyToFilePath = $PathServerModule;      break; }
-            ClientModule    { $copyToFilePath = $PathClientModule;      break; }
-            DataPack        { $copyToFilePath = $PathDataPack;          break; }
-            ResourcePack    { $copyToFilePath = $PathResourcePack;      break; }
-            NodeDependancy  { $copyToFilePath = $PathNodeDependancy;    break; }
+        switch ($this.Build.OutputType) {
+            Other               { $copyToFilePath = $dirCurrentSource;        break; }
+            Server              { $copyToFilePath = $PathServer;              break; }
+            Script              { $copyToFilePath = $PathScript;              break; }
+            Plugin              { $copyToFilePath = $PathPlugin;              break; }
+            VelocityPlugin      { $copyToFilePath = $PathVelocityPlugin;      break; }
+            Module              { $copyToFilePath = $PathModule;              break; }
+            ServerModule        { $copyToFilePath = $PathServerModule;        break; }
+            ClientModule        { $copyToFilePath = $PathClientModule;        break; }
+            DataPack            { $copyToFilePath = $PathDataPack;            break; }
+            ResourcePack        { $copyToFilePath = $PathResourcePack;        break; }
+            NodeDependancy      { $copyToFilePath = $PathNodeDependancy;      break; }
+            SubModuleDependancy { $copyToFilePath = $PathSubModuleDependancy; break; }
         }
 
         # Determine the copy to output file name
         [string]$copyToFileName = ''
-        if ( $this.SubModuleType -eq [SubModuleType]::Script ) {
+        if ( $this.Build.OutputType -eq [OutputType]::Script ) {
             $copyToFileName = $this.Build.GetOutputFileName()
         }
         else {
@@ -211,7 +175,7 @@ class SourceSubModule {
             [string]$copyToExistingFilter = '^' + [System.Text.RegularExpressions.Regex]::Escape($copyToFileName) + '(\.disabled|\.backup)*$'
             $copyToExistingFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $copyToExistingFilter }
 
-            switch ($this.SubModuleType) {
+            switch ($this.Build.OutputType) {
                 Script {
                     [string]$copyFromFileName = Join-Path -Path $dirCurrentSource -ChildPath ($this.Build.GetOutput())
                     if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$PathServer,$WhatIF,$true)) { $updatedFile = $copyToFileFullName }

@@ -1,3 +1,21 @@
+#################
+# Declare Enums #
+#################
+enum OutputType {
+    Other
+    Server
+    Script
+    Plugin
+    VelocityPlugin
+    Module
+    ServerModule
+    ClientModule
+    DataPack
+    ResourcePack
+    NodeDependancy
+    SubModuleDependency
+}
+
 ###########################
 # Declare Class BuildType #
 ###########################
@@ -7,24 +25,26 @@ class BuildType {
 	[string]$PreCommand
 	[string]$PostCommand
 	[string]$VersionCommand
+    [OutputType]$OutputType
 	[string]$Output
     [System.Boolean]$PerformBuild
     [string] hidden $generatedRawVersion = $null
     [string] hidden $generatedCleanVersion = $null
-    [void] hidden Init([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[string]$Output,[System.Boolean]$PerformBuild) {
+    [void] hidden Init([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[OutputType]$OutputType,[string]$Output,[System.Boolean]$PerformBuild) {
 		$this.Command = $Command
-		$this.InitCommand = $InitCommand
+        $this.InitCommand = $InitCommand
 		$this.PreCommand = $PreCommand
 		$this.PostCommand = $PostCommand
 		$this.VersionCommand = $VersionCommand
+        $this.OutputType = $OutputType
 		$this.Output = $Output
 		$this.PerformBuild = $PerformBuild
     }
     BuildType() {
-        $this.Init($null, $null, $null, $null, $null, $null, $true)
+        $this.Init($null, $null, $null, $null, $null, [OutputType]::Other, $null, $true)
     }
-	BuildType([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[string]$Output,[System.Boolean]$PerformBuild){
-		$this.Init($Command, $InitCommand, $PreCommand, $PostCommand, $VersionCommand, $Output, $PerformBuild)
+	BuildType([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[OutputType]$OutputType,[string]$Output,[System.Boolean]$PerformBuild){
+		$this.Init($Command, $InitCommand, $PreCommand, $PostCommand, $VersionCommand, $OutputType, $Output, $PerformBuild)
     }
     BuildType([Hashtable]$Value){
         if($Value.Contains('Command'))          { $this.Command         = $this.FlattenString($Value.Command)        }
@@ -32,6 +52,28 @@ class BuildType {
         if($Value.Contains('PreCommand'))       { $this.PreCommand      = $this.FlattenString($Value.PreCommand)     }
         if($Value.Contains('PostCommand'))      { $this.PostCommand     = $this.FlattenString($Value.PostCommand)    }
         if($Value.Contains('VersionCommand'))   { $this.VersionCommand  = $this.FlattenString($Value.VersionCommand) }
+
+        # Set the Output Type enum
+        [OutputType]$tmpOutputType = [OutputType]::Other
+        if ($Value.Contains('OutputType')){
+            switch ($Value.OutputType) {
+                "Other"               { $tmpOutputType = [OutputType]::Other;               break }
+                "Server"              { $tmpOutputType = [OutputType]::Server;              break }
+                "Script"              { $tmpOutputType = [OutputType]::Script;              break }
+                "Plugin"              { $tmpOutputType = [OutputType]::Plugin;              break }
+                "VelocityPlugin"      { $tmpOutputType = [OutputType]::VelocityPlugin;      break }
+                "Module"              { $tmpOutputType = [OutputType]::Module;              break }
+                "ServerModule"        { $tmpOutputType = [OutputType]::ServerModule;        break }
+                "ClientModule"        { $tmpOutputType = [OutputType]::ClientModule;        break }
+                "DataPack"            { $tmpOutputType = [OutputType]::DataPack;            break }
+                "ResourcePack"        { $tmpOutputType = [OutputType]::ResourcePack;        break }
+                "NodeDependancy"      { $tmpOutputType = [OutputType]::NodeDependancy;      break }
+                "SubModuleDependancy" { $tmpOutputType = [OutputType]::SubModuleDependancy; break }
+                default               { $tmpOutputType = [OutputType]::Other                      }
+            }
+        }
+        $this.OutputType = $tmpOutputType
+
         if($Value.Contains('Output'))           { $this.Output          = [string]$Value.Output                }
         if($Value.Contains('PerformBuild'))     { $this.PerformBuild    = [System.Boolean]$Value.PerformBuild  }
         else { $this.PerformBuild = $true }
