@@ -144,14 +144,22 @@ function LoadSourceSubModules {
         # Iterate through the submodules
         foreach($item in $SubmodulesData){
             if (-not ($item.Contains('Ignore') -and $item.Ignore)) {
-                # Set the JAVA_HOME property if it exists
-                if ($item.Build.Contains('JAVA_HOME')){
-                    [int]$version = $item.Build.JAVA_HOME
-                    [string]$path = $global:JAVA_HOME.$version
-                    $item.Build.JAVA_HOME = [string]::IsNullOrWhiteSpace($path) ? $([string]::IsNullOrWhiteSpace($script:Java_Default) ? $null : $script:Java_Default) : $path
+                if ($item.Builds -is [hashtable]) {
+                    # Set the JAVA_HOME property if it exists
+                    if ($item.Builds.Contains('JAVA_HOME')){
+                        [int]$version = $item.Builds.JAVA_HOME
+                        [string]$path = $global:JAVA_HOME.$version
+                        $item.Builds.JAVA_HOME = [string]::IsNullOrWhiteSpace($path) ? $([string]::IsNullOrWhiteSpace($script:Java_Default) ? $null : $script:Java_Default) : $path
+                    }
+                    else {
+                        $item.Builds.JAVA_HOME = [string]::IsNullOrWhiteSpace($script:Java_Default) ? $null : $script:Java_Default
+                    }
+                }
+                elseif ($item.Builds -is [array]) {
+                    <# Action when this condition is true #>
                 }
                 else {
-                    $item.Build.JAVA_HOME = [string]::IsNullOrWhiteSpace($script:Java_Default) ? $null : $script:Java_Default
+                    <# Action when all if and elseif conditions are false #>
                 }
                 $ReturnSources += [SourceSubModule]::new($item)
             }

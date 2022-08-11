@@ -136,14 +136,14 @@
         "typeSubmodule":{
             "type":"object",
             "additionalProperties": false,
-            "required": ["Name","Repo","Build"],
+            "required": ["Name","Repo","Builds"],
             "properties": {
                 "Name": { "type":"string" },
                 "DisplayName": { "type":"string" },
                 "Ignore": { "type": "boolean" },
                 "Comment": { "oneOf": [ {"type": "string" },{ "type": "array", "items": { "type": "string" } } ] },
                 "Repo":      { "$ref": "#/definitions/typeGitRepo"   },
-                "Build":     { "$ref": "#/definitions/typeBuildType" },
+                "Builds":    { "oneOf": [ { "$ref": "#/definitions/typeBuildType" },{ "type": "array", "items": { "$ref": "#/definitions/typeBuildType" } } ] },
                 "FinalName": { "type": "string"                      }
             }
         }

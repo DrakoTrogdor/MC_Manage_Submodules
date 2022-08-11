@@ -7,19 +7,30 @@ using module .\Class.Repo.psm1
 class SourceSubModule {
     [string]$Name
     [GitRepo]$Repo
-    [BuildType]$Build
+    [BuildType[]]$Builds
     [string]$FinalName
-    Init([string]$Name, [GitRepo]$Repo, [BuildType]$Build, [string]$FinalName) {
+    Init([string]$Name, [GitRepo]$Repo, [BuildType[]]$Builds, [string]$FinalName) {
         $this.Name = $Name
         $this.Repo = $Repo
-        $this.Build = $Build
+        $this.Builds = $Builds
         $this.FinalName = $FinalName
     }
     SourceSubModule() {
-       $this.Init('', [GitRepo]::new(), [BuildType]::new(), $null)
+<#
+        [Collections.Generic.List[BuildType]]$tmpBuilds = [Collections.Generic.List[BuildType]]::new()
+        if ($Value.Contains('IgnoreBranches')){
+            foreach ($build in $Value.Builds) {
+                $tmpBuilds.Add([string]::new([string]$branch))
+            }
+        }
+#>
+        $this.Init('', [GitRepo]::new(), [BuildType[]]@(), $null)
+    }
+    SourceSubModule ([string]$Name, [GitRepo]$Repo, [BuildType[]]$Builds, [string]$FinalName) {
+        $this.Init($Name, $Repo, $Builds, $FinalName)
     }
     SourceSubModule ([string]$Name, [GitRepo]$Repo, [BuildType]$Build, [string]$FinalName) {
-        $this.Init($Name, $Repo, $Build, $FinalName)
+        $this.Init($Name, $Repo, [BuildType[]]@($Build), $FinalName)
     }
     SourceSubModule([Hashtable]$Value) {
         # Set the Name string
@@ -30,8 +41,8 @@ class SourceSubModule {
 
         # Create a Build Type class or derived class
         [BuildType]$tmpBuild = $null
-        if ($Value.Build.Contains('Type')) {
-            switch ($Value.Build.Type) {
+        if ($Value.Builds.Contains('Type')) {
+            switch ($Value.Builds.Type) {
                 "Base"   { $tmpBuild = [BuildType]::new($Value.Build);       break }
                 "Java"   { $tmpBuild = [BuildTypeJava]::new($Value.Build);   break }
                 "Gradle" { $tmpBuild = [BuildTypeGradle]::new($Value.Build); break }
@@ -131,14 +142,14 @@ class SourceSubModule {
             $this.Repo.InvokePull($true)
         }
 
-        $this.Build.InvokeInitBuild($WhatIF)
+        $this.Builds.InvokeInitBuild($WhatIF)
 
         $commit = ($this.Repo.GetCommit())
-        $version = ($this.Build.GetVersion())
+        $version = ($this.Builds.GetVersion())
 
         # Determine the copy to output file directory
         [string]$copyToFilePath = ''
-        switch ($this.Build.OutputType) {
+        switch ($this.Builds.OutputType) {
             Other               { $copyToFilePath = $dirCurrentSource;        break; }
             Server              { $copyToFilePath = $PathServer;              break; }
             Script              { $copyToFilePath = $PathScript;              break; }
@@ -155,11 +166,11 @@ class SourceSubModule {
 
         # Determine the copy to output file name
         [string]$copyToFileName = ''
-        if ( $this.Build.OutputType -eq [OutputType]::Script ) {
-            $copyToFileName = $this.Build.GetOutputFileName()
+        if ( $this.Builds.OutputType -eq [OutputType]::Script ) {
+            $copyToFileName = $this.Builds.GetOutputFileName()
         }
         else {
-            $copyToFileName =  "$($this.GetFinalName())-$version-CUSTOM+$commit$($this.Build.GetOutputExtension())"
+            $copyToFileName =  "$($this.GetFinalName())-$version-CUSTOM+$commit$($this.Builds.GetOutputExtension())"
         }
 
         # Determine the copy to full file name
@@ -168,33 +179,33 @@ class SourceSubModule {
         # Show current values before checking if a build is required
         $this.Repo.Display()
         Write-Console "$version" -Title 'Version'
-        Write-Console "`"$($this.RelativePath($PathServer, $(Join-Path -Path $dirCurrentSource -ChildPath $($this.Build.GetOutput()))))`"" -Title 'Copy From'
+        Write-Console "`"$($this.RelativePath($PathServer, $(Join-Path -Path $dirCurrentSource -ChildPath $($this.Builds.GetOutput()))))`"" -Title 'Copy From'
         Write-Console "`"$($this.RelativePath($PathServer, $copyToFileFullName))`"" -Title 'Copy To'
 
-        if ($this.Build.PerformBuild) {
+        if ($this.Builds.PerformBuild) {
             [string]$copyToExistingFilter = '^' + [System.Text.RegularExpressions.Regex]::Escape($copyToFileName) + '(\.disabled|\.backup)*$'
             $copyToExistingFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $copyToExistingFilter }
 
-            switch ($this.Build.OutputType) {
+            switch ($this.Builds.OutputType) {
                 Script {
-                    [string]$copyFromFileName = Join-Path -Path $dirCurrentSource -ChildPath ($this.Build.GetOutput())
+                    [string]$copyFromFileName = Join-Path -Path $dirCurrentSource -ChildPath ($this.Builds.GetOutput())
                     if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$PathServer,$WhatIF,$true)) { $updatedFile = $copyToFileFullName }
                     break
                 }
                 Other {
-                    $this.Build.InvokePreBuild($WhatIF)
-                    $this.Build.InvokeBuild($WhatIF)
-                    $this.Build.InvokePostBuild($WhatIF)
+                    $this.Builds.InvokePreBuild($WhatIF)
+                    $this.Builds.InvokeBuild($WhatIF)
+                    $this.Builds.InvokePostBuild($WhatIF)
                     break
                 }
                 Default {
                     if ($copyToExistingFiles.Count -eq 0) {
-                        $this.Build.InvokePreBuild($WhatIF)
-                        $this.Build.InvokeBuild($WhatIF)
+                        $this.Builds.InvokePreBuild($WhatIF)
+                        $this.Builds.InvokeBuild($WhatIF)
                         $lastHour = (Get-Date).AddDays(-1)
-                        $copyFromExistingFiles = Get-ChildItem -Path $(Join-Path -Path $dirCurrentSource -ChildPath $this.Build.GetOutput()) -File -Exclude @('*-dev.jar','*-sources.jar','*-fatjavadoc.jar','*-noshade.jar','*-api.jar','*-javadoc.jar') -EA:0 | Where-Object {$_.CreationTime -ge $lastHour} | Sort-Object -Descending CreationTime | Select-Object -First 1
+                        $copyFromExistingFiles = Get-ChildItem -Path $(Join-Path -Path $dirCurrentSource -ChildPath $this.Builds.GetOutput()) -File -Exclude @('*-dev.jar','*-sources.jar','*-fatjavadoc.jar','*-noshade.jar','*-api.jar','*-javadoc.jar') -EA:0 | Where-Object {$_.CreationTime -ge $lastHour} | Sort-Object -Descending CreationTime | Select-Object -First 1
                         if ( $null -ne $copyFromExistingFiles -or $WhatIF ) {
-                            $renameOldFileFilter = [System.Text.RegularExpressions.Regex]::Escape("$($this.GetFinalName())-") + '.*\-CUSTOM\+.*' + [System.Text.RegularExpressions.Regex]::Escape($this.Build.GetOutputExtension()) + '$'
+                            $renameOldFileFilter = [System.Text.RegularExpressions.Regex]::Escape("$($this.GetFinalName())-") + '.*\-CUSTOM\+.*' + [System.Text.RegularExpressions.Regex]::Escape($this.Builds.GetOutputExtension()) + '$'
                             $renameOldFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $renameOldFileFilter }
                             foreach ($renameOldFile in $renameOldFiles) {
                                 Write-Console "`"$($this.RelativePath($PathServer, $renameOldFile.FullName))`" to `"$($this.RelativePath($PathServer, $renameOldFile.FullName))^fE.disabled^fz`"" -Title 'Renaming'
@@ -203,7 +214,7 @@ class SourceSubModule {
                             }
                             [string]$copyFromFileFullName = ($WhatIF ? '<buildOutputFile>' : $copyFromExistingFiles.FullName)
                             if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$PathServer,$WhatIF,$false)) { $updatedFile = $copyToFileFullName }
-                            $this.Build.InvokePostBuild($WhatIF)
+                            $this.Builds.InvokePostBuild($WhatIF)
                         }
                         else { Write-Console "^frNo build output file `"$copyFromExistingFiles`" found." -Title 'Error' }
                     }
