@@ -8,7 +8,7 @@
             "name": "PowerShell Launch Script",
             "type": "PowerShell",
             "request": "launch",
-            "script": "${workspaceFolder}/../../manage.ps1",
+            "script": "${workspaceFolder}/manage.ps1",
             "cwd": "${workspaceFolder}/../../"
         },
         {
