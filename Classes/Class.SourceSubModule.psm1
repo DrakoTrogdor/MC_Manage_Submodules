@@ -39,27 +39,39 @@ class SourceSubModule {
         # Create a GitRepo class
         [GitRepo]$tmpRepo = $Value.Contains('Repo') ? [GitRepo]::new($Value.Repo) : [GitRepo]::new()
 
-        # Create a Build Type class or derived class
-        [BuildType]$tmpBuild = $null
-        if ($Value.Builds.Contains('Type')) {
-            switch ($Value.Builds.Type) {
-                "Base"   { $tmpBuild = [BuildType]::new($Value.Build);       break }
-                "Java"   { $tmpBuild = [BuildTypeJava]::new($Value.Build);   break }
-                "Gradle" { $tmpBuild = [BuildTypeGradle]::new($Value.Build); break }
-                "Maven"  { $tmpBuild = [BuildTypeMaven]::new($Value.Build);  break }
-                "NPM"    { $tmpBuild = [BuildTypeNPM]::new($Value.Build);    break }
-                Default  { $tmpBuild = [BuildType]::new($Value.Build)              }
-            }
-        }
-        else {
-            $tmpBuild = [BuildType]::new($Value.Build)
-        }
-
         # Retrieve Final Name string
         [string]$tmpFinalName =  $Value.Contains('FinalName')       ? [string]$Value.FinalName          : $null
 
-        # Complete constructor by executing the Init function
-        $this.Init($tmpName, $tmpRepo, $tmpBuild, $tmpFinalName)
+        if ($Value.Builds -is [hashtable]){
+            # Complete constructor by executing the Init function
+            $this.Init($tmpName, $tmpRepo, [BuildType[]]@($this.getNewBuild($Value.Builds)), $tmpFinalName)
+        }
+        else { #if ($Value.Builds -is [array]){
+            [BuildType[]]$tmpBuilds=@()
+            foreach ($build in $Value.Builds) {
+                $tmpBuilds +=  $this.getNewBuild($build)
+            }
+            $this.Init($tmpName, $tmpRepo, $tmpBuilds, $tmpFinalName)
+        }
+
+    }
+    [BuildType] hidden getNewBuild([Hashtable]$BuildValue){
+        # Create a Build Type class or derived class
+        [BuildType]$returnBuild = $null
+        if ($BuildValue.Contains('Type')) {
+            switch ($BuildValue.Type) {
+                "Base"   { $returnBuild = [BuildType]::new($BuildValue);       break }
+                "Java"   { $returnBuild = [BuildTypeJava]::new($BuildValue);   break }
+                "Gradle" { $returnBuild = [BuildTypeGradle]::new($BuildValue); break }
+                "Maven"  { $returnBuild = [BuildTypeMaven]::new($BuildValue);  break }
+                "NPM"    { $returnBuild = [BuildTypeNPM]::new($BuildValue);    break }
+                Default  { $returnBuild = [BuildType]::new($BuildValue)              }
+            }
+        }
+        else {
+            $returnBuild = [BuildType]::new($BuildValue)
+        }
+        return $returnBuild
     }
     [string]GetFinalName() {
         if ([string]::IsNullOrWhiteSpace($this.FinalName)){ return $this.Name }
@@ -114,7 +126,7 @@ class SourceSubModule {
         Set-Location -Path $dirCurrentSource
         $this.Repo.InvokeClean()
     }
-    [string]InvokeBuild (
+    [string[]]InvokeBuild (
             [string]$PathRoot,
             [string]$PathSource,
             [string]$PathServer,
@@ -131,7 +143,7 @@ class SourceSubModule {
             [switch]$PerformCleanAndPull,
             [switch]$WhatIF
     ){
-        [string]$updatedFile = $null
+        [string[]]$updatedFiles = @()
         $dirCurrentSource = Join-Path -Path $PathSource -ChildPath $this.Name
 
         Set-Location -Path $dirCurrentSource
@@ -142,87 +154,91 @@ class SourceSubModule {
             $this.Repo.InvokePull($true)
         }
 
-        $this.Builds.InvokeInitBuild($WhatIF)
-
         $commit = ($this.Repo.GetCommit())
-        $version = ($this.Builds.GetVersion())
 
-        # Determine the copy to output file directory
-        [string]$copyToFilePath = ''
-        switch ($this.Builds.OutputType) {
-            Other               { $copyToFilePath = $dirCurrentSource;        break; }
-            Server              { $copyToFilePath = $PathServer;              break; }
-            Script              { $copyToFilePath = $PathScript;              break; }
-            Plugin              { $copyToFilePath = $PathPlugin;              break; }
-            VelocityPlugin      { $copyToFilePath = $PathVelocityPlugin;      break; }
-            Module              { $copyToFilePath = $PathModule;              break; }
-            ServerModule        { $copyToFilePath = $PathServerModule;        break; }
-            ClientModule        { $copyToFilePath = $PathClientModule;        break; }
-            DataPack            { $copyToFilePath = $PathDataPack;            break; }
-            ResourcePack        { $copyToFilePath = $PathResourcePack;        break; }
-            NodeDependancy      { $copyToFilePath = $PathNodeDependancy;      break; }
-            SubModuleDependancy { $copyToFilePath = $PathSubModuleDependancy; break; }
-        }
+        foreach ($build in $this.Builds) {
+            $build.InvokeInitBuild($WhatIF)
 
-        # Determine the copy to output file name
-        [string]$copyToFileName = ''
-        if ( $this.Builds.OutputType -eq [OutputType]::Script ) {
-            $copyToFileName = $this.Builds.GetOutputFileName()
-        }
-        else {
-            $copyToFileName =  "$($this.GetFinalName())-$version-CUSTOM+$commit$($this.Builds.GetOutputExtension())"
-        }
+            $version = ($build.GetVersion())
 
-        # Determine the copy to full file name
-        [string]$copyToFileFullName = Join-Path -Path $copyToFilePath -ChildPath $copyToFileName
-
-        # Show current values before checking if a build is required
-        $this.Repo.Display()
-        Write-Console "$version" -Title 'Version'
-        Write-Console "`"$($this.RelativePath($PathServer, $(Join-Path -Path $dirCurrentSource -ChildPath $($this.Builds.GetOutput()))))`"" -Title 'Copy From'
-        Write-Console "`"$($this.RelativePath($PathServer, $copyToFileFullName))`"" -Title 'Copy To'
-
-        if ($this.Builds.PerformBuild) {
-            [string]$copyToExistingFilter = '^' + [System.Text.RegularExpressions.Regex]::Escape($copyToFileName) + '(\.disabled|\.backup)*$'
-            $copyToExistingFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $copyToExistingFilter }
-
-            switch ($this.Builds.OutputType) {
-                Script {
-                    [string]$copyFromFileName = Join-Path -Path $dirCurrentSource -ChildPath ($this.Builds.GetOutput())
-                    if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$PathServer,$WhatIF,$true)) { $updatedFile = $copyToFileFullName }
-                    break
-                }
-                Other {
-                    $this.Builds.InvokePreBuild($WhatIF)
-                    $this.Builds.InvokeBuild($WhatIF)
-                    $this.Builds.InvokePostBuild($WhatIF)
-                    break
-                }
-                Default {
-                    if ($copyToExistingFiles.Count -eq 0) {
-                        $this.Builds.InvokePreBuild($WhatIF)
-                        $this.Builds.InvokeBuild($WhatIF)
-                        $lastHour = (Get-Date).AddDays(-1)
-                        $copyFromExistingFiles = Get-ChildItem -Path $(Join-Path -Path $dirCurrentSource -ChildPath $this.Builds.GetOutput()) -File -Exclude @('*-dev.jar','*-sources.jar','*-fatjavadoc.jar','*-noshade.jar','*-api.jar','*-javadoc.jar') -EA:0 | Where-Object {$_.CreationTime -ge $lastHour} | Sort-Object -Descending CreationTime | Select-Object -First 1
-                        if ( $null -ne $copyFromExistingFiles -or $WhatIF ) {
-                            $renameOldFileFilter = [System.Text.RegularExpressions.Regex]::Escape("$($this.GetFinalName())-") + '.*\-CUSTOM\+.*' + [System.Text.RegularExpressions.Regex]::Escape($this.Builds.GetOutputExtension()) + '$'
-                            $renameOldFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $renameOldFileFilter }
-                            foreach ($renameOldFile in $renameOldFiles) {
-                                Write-Console "`"$($this.RelativePath($PathServer, $renameOldFile.FullName))`" to `"$($this.RelativePath($PathServer, $renameOldFile.FullName))^fE.disabled^fz`"" -Title 'Renaming'
-                                if ($WhatIF) { Write-Console "Rename-Item -Path `"$($this.RelativePath($PathServer, $renameOldFile.FullName))`" -NewName `"$($this.RelativePath($PathServer, $renameOldFile.FullName)).disabled`" -Force -EA:0" -Title 'WhatIF'}
-                                else { Rename-Item -Path "$($renameOldFile.FullName)" -NewName "$($renameOldFile.FullName).disabled" -Force -EA:0 }
-                            }
-                            [string]$copyFromFileFullName = ($WhatIF ? '<buildOutputFile>' : $copyFromExistingFiles.FullName)
-                            if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$PathServer,$WhatIF,$false)) { $updatedFile = $copyToFileFullName }
-                            $this.Builds.InvokePostBuild($WhatIF)
-                        }
-                        else { Write-Console "^frNo build output file `"$copyFromExistingFiles`" found." -Title 'Error' }
+            # Determine the copy to output file directory
+            [string]$copyToFilePath = ''
+            switch ($build.OutputType) {
+                Other               { $copyToFilePath = $dirCurrentSource;        break; }
+                Server              { $copyToFilePath = $PathServer;              break; }
+                Script              { $copyToFilePath = $PathScript;              break; }
+                Plugin              { $copyToFilePath = $PathPlugin;              break; }
+                VelocityPlugin      { $copyToFilePath = $PathVelocityPlugin;      break; }
+                Module              { $copyToFilePath = $PathModule;              break; }
+                ServerModule        { $copyToFilePath = $PathServerModule;        break; }
+                ClientModule        { $copyToFilePath = $PathClientModule;        break; }
+                DataPack            { $copyToFilePath = $PathDataPack;            break; }
+                ResourcePack        { $copyToFilePath = $PathResourcePack;        break; }
+                NodeDependancy      { $copyToFilePath = $PathNodeDependancy;      break; }
+                SubModuleDependancy { $copyToFilePath = $PathSubModuleDependancy; break; }
+            }
+    
+            # Determine the copy to output file name
+            [string]$copyToFileName = ''
+            if ( $build.OutputType -eq [OutputType]::Script ) {
+                $copyToFileName = $build.GetOutputFileName()
+            }
+            else {
+                $copyToFileName =  "$($this.GetFinalName())-$version-CUSTOM+$commit$($build.GetOutputExtension())"
+            }
+    
+            # Determine the copy to full file name
+            [string]$copyToFileFullName = Join-Path -Path $copyToFilePath -ChildPath $copyToFileName
+    
+            # Show current values before checking if a build is required
+            $this.Repo.Display()
+            Write-Console "$version" -Title 'Version'
+            Write-Console "`"$($this.RelativePath($PathServer, $(Join-Path -Path $dirCurrentSource -ChildPath $($build.GetOutput()))))`"" -Title 'Copy From'
+            Write-Console "`"$($this.RelativePath($PathServer, $copyToFileFullName))`"" -Title 'Copy To'
+    
+            if ($build.PerformBuild) {
+                [string]$copyToExistingFilter = '^' + [System.Text.RegularExpressions.Regex]::Escape($copyToFileName) + '(\.disabled|\.backup)*$'
+                $copyToExistingFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $copyToExistingFilter }
+    
+                switch ($build.OutputType) {
+                    Script {
+                        [string]$copyFromFileName = Join-Path -Path $dirCurrentSource -ChildPath ($build.GetOutput())
+                        if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$PathServer,$WhatIF,$true)) { $updatedFiles += $copyToFileFullName }
+                        break
                     }
-                    else { Write-Console "`"^fG$($this.RelativePath($PathServer, ($copyToExistingFiles|Select-Object -First 1).FullName))^fz`" is already up to date." }
+                    Other {
+                        $build.InvokePreBuild($WhatIF)
+                        $build.InvokeBuild($WhatIF)
+                        $build.InvokePostBuild($WhatIF)
+                        break
+                    }
+                    Default {
+                        if ($copyToExistingFiles.Count -eq 0) {
+                            $build.InvokePreBuild($WhatIF)
+                            $build.InvokeBuild($WhatIF)
+                            $lastHour = (Get-Date).AddDays(-1)
+                            $copyFromExistingFiles = Get-ChildItem -Path $(Join-Path -Path $dirCurrentSource -ChildPath $build.GetOutput()) -File -Exclude @('*-dev.jar','*-sources.jar','*-fatjavadoc.jar','*-noshade.jar','*-api.jar','*-javadoc.jar') -EA:0 | Where-Object {$_.CreationTime -ge $lastHour} | Sort-Object -Descending CreationTime | Select-Object -First 1
+                            if ( $null -ne $copyFromExistingFiles -or $WhatIF ) {
+                                $renameOldFileFilter = [System.Text.RegularExpressions.Regex]::Escape("$($this.GetFinalName())-") + '.*\-CUSTOM\+.*' + [System.Text.RegularExpressions.Regex]::Escape($build.GetOutputExtension()) + '$'
+                                $renameOldFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $renameOldFileFilter }
+                                foreach ($renameOldFile in $renameOldFiles) {
+                                    Write-Console "`"$($this.RelativePath($PathServer, $renameOldFile.FullName))`" to `"$($this.RelativePath($PathServer, $renameOldFile.FullName))^fE.disabled^fz`"" -Title 'Renaming'
+                                    if ($WhatIF) { Write-Console "Rename-Item -Path `"$($this.RelativePath($PathServer, $renameOldFile.FullName))`" -NewName `"$($this.RelativePath($PathServer, $renameOldFile.FullName)).disabled`" -Force -EA:0" -Title 'WhatIF'}
+                                    else { Rename-Item -Path "$($renameOldFile.FullName)" -NewName "$($renameOldFile.FullName).disabled" -Force -EA:0 }
+                                }
+                                [string]$copyFromFileFullName = ($WhatIF ? '<buildOutputFile>' : $copyFromExistingFiles.FullName)
+                                if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$PathServer,$WhatIF,$false)) { $updatedFiles += $copyToFileFullName }
+                                $build.InvokePostBuild($WhatIF)
+                            }
+                            else { Write-Console "^frNo build output file `"$copyFromExistingFiles`" found." -Title 'Error' }
+                        }
+                        else { Write-Console "`"^fG$($this.RelativePath($PathServer, ($copyToExistingFiles|Select-Object -First 1).FullName))^fz`" is already up to date." }
+                    }
                 }
             }
+            else { Write-Console "^fMBuilding of this submodule is currently disabled.^fz" }
         }
-        else { Write-Console "^fMBuilding of this submodule is currently disabled.^fz" }
-        return $updatedFile
+
+        return $updatedFiles
     }
 }

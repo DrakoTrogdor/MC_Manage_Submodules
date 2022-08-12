@@ -156,10 +156,17 @@ function LoadSourceSubModules {
                     }
                 }
                 elseif ($item.Builds -is [array]) {
-                    <# Action when this condition is true #>
-                }
-                else {
-                    <# Action when all if and elseif conditions are false #>
+                    foreach ($build in $item.Builds) {
+                        # Set the JAVA_HOME property if it exists
+                        if ($build.Contains('JAVA_HOME')){
+                            [int]$version = $build.JAVA_HOME
+                            [string]$path = $global:JAVA_HOME.$version
+                            $build.JAVA_HOME = [string]::IsNullOrWhiteSpace($path) ? $([string]::IsNullOrWhiteSpace($script:Java_Default) ? $null : $script:Java_Default) : $path
+                        }
+                        else {
+                            $build.JAVA_HOME = [string]::IsNullOrWhiteSpace($script:Java_Default) ? $null : $script:Java_Default
+                        }
+                    }
                 }
                 $ReturnSources += [SourceSubModule]::new($item)
             }
@@ -310,8 +317,8 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
-                if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
+                [string[]]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
+                if (-not ($null -eq $buildReturn) -and ($buildReturn -is [string[]])) { $updatedFiles += $buildReturn }
             }
 
             # Clean Root Folder
@@ -420,11 +427,11 @@ do { # Main loop
 
             $filesRoot = (git ls-files . --other @exceptions)
             foreach ($file in $filesRoot) { $files += Resolve-Path -Path "$dirRoot\$file" }
-            
+
             foreach ($file in $additions) {
                 if (Test-Path -Path $file){ $files += Resolve-Path -Path "$file" }
             }
-            
+
             $archiveFile = $(Join-Path -Path $dirRoot -ChildPath "$(Get-Date -Format 'yyyy-MM-dd@HH-mm')-untracked.zip")
             $archive = [System.IO.Compression.ZipFile]::Open($archiveFile,[System.IO.Compression.ZipArchiveMode]::Create)
             foreach ($file in $files) {
@@ -456,7 +463,7 @@ do { # Main loop
             foreach ($currentSource in $sources) {
                 $currentSource.InvokeClean($dirSources)
             }
-            
+
             PressAnyKey
             break
         }
@@ -524,8 +531,8 @@ do { # Main loop
             Push-Location -Path $dirSources -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
-                if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { $updatedFiles += $buildReturn }
+                [string[]]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
+                if (-not ($null -eq $buildReturn) -and ($buildReturn -is [string[]])) { $updatedFiles += $buildReturn }
             }
             if ($updatedFiles.Count -gt 0) {
                Write-Host "Updated Files...`r`n$('=' * 120)" -ForegroundColor Green
@@ -534,13 +541,20 @@ do { # Main loop
                }
             }
             PressAnyKey
-           break
+            break
         }
         'Build - Compile One'{
             Push-Location -Path $dirSources -StackName 'MainLoop'
+            [string[]]$updatedFiles = @()
             $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dirStartup
-            [string]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
-            if (-not [string]::IsNullOrWhiteSpace($buildReturn)) { Write-Host "Updated Files...`r`n$('=' * 120)`r`n`t$buildReturn" -ForegroundColor Green }
+            [string[]]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
+            if (-not ($null -eq $buildReturn) -and ($buildReturn -is [string[]])) { $updatedFiles += $buildReturn }
+            if ($updatedFiles.Count -gt 0) {
+                Write-Host "Updated Files...`r`n$('=' * 120)" -ForegroundColor Green
+                foreach ($item in $updatedFiles) {
+                    Write-Host "`t$item" -ForegroundColor Green
+                }
+            }
             PressAnyKey
             break
         }
@@ -550,9 +564,11 @@ do { # Main loop
                 $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
                 Write-Host $currentSource.GetFinalName()
-                $currentSource.Build.InvokeInitBuild()
-                Write-Host "`tRaw Version  : $($currentSource.Build.GetVersion($true))"
-                Write-Host "`tClean Version: $($currentSource.Build.GetVersion())"
+                foreach ($build in $currentSource.Builds) {
+                    $build.InvokeInitBuild()
+                    Write-Host "`tRaw Version  : $($build.GetVersion($true))"
+                    Write-Host "`tClean Version: $($build.GetVersion())"
+                }
             }
             PressAnyKey
             break
