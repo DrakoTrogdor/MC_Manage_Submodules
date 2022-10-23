@@ -190,15 +190,15 @@ function Show-DirectoryInfo() {
     Write-Host "Base Directories:" -ForegroundColor Green
     Write-Host "`tRoot:           $($dir['Root'])" -ForegroundColor Green
     Write-Host "`tSources:        $($dir['Sources'])" -ForegroundColor Green
-    Write-Host "`tDependancies:   $($dir['SubModuleDependancies'])" -ForegroundColor Green
+    Write-Host "`tDependancies:   $($dir['SubModuleDependancy'])" -ForegroundColor Green
     Write-Host "Server Directories:" -ForegroundColor Green
     Write-Host "`tServer:         $($dir['Server'])" -ForegroundColor Green
-    Write-Host "`tPlugins:        $($dir['Plugins'])" -ForegroundColor Green
-    Write-Host "`tServer Mods:    $($dir['ServerModules'])" -ForegroundColor Green
-    Write-Host "`tData Packs:     $($dir['DataPacks'])" -ForegroundColor Green
+    Write-Host "`tPlugins:        $($dir['Plugin'])" -ForegroundColor Green
+    Write-Host "`tServer Mods:    $($dir['ServerModule'])" -ForegroundColor Green
+    Write-Host "`tData Packs:     $($dir['DataPack'])" -ForegroundColor Green
     Write-Host "Client Directories:" -ForegroundColor Green
-    Write-Host "`tClient Mods:    $($dir['ClientModules'])" -ForegroundColor Green
-    Write-Host "`tResource Packs: $($dir['ResourcePacks'])" -ForegroundColor Green
+    Write-Host "`tClient Mods:    $($dir['ClientModule'])" -ForegroundColor Green
+    Write-Host "`tResource Packs: $($dir['ResourcePack'])" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Green
     Write-Host "`tmyGit_URL:      $($script:myGit_URL)" -ForegroundColor Green
     foreach ($item in $global:JAVA_HOME) {
@@ -227,17 +227,19 @@ $dir['Sources'] = Join-Path -Path $dir['Root'] -ChildPath src
 
 ## Server directories
 $dir['Server'] = $dir['Root']
-$dir['Plugins'] = Join-Path -Path $dir['Server'] -ChildPath plugins
-$dir['VelocityPlugins'] = Join-Path -Path $dir['Server'] -ChildPath velocityplugins
-$dir['ServerModules'] = Join-Path -Path $dir['Server'] -ChildPath mods
-$dir['SubModuleDependancies'] = Join-Path -Path $dir['Server'] -ChildPath dependencies
-$dir['Worlds']= Join-Path -Path $dir['Server'] -ChildPath worlds -AdditionalChildPath world
-$dir['DataPacks'] = Join-Path -Path $dir['Worlds']-ChildPath datapacks
+$dir['Plugin'] = Join-Path -Path $dir['Server'] -ChildPath plugins
+$dir['VelocityPlugin'] = Join-Path -Path $dir['Server'] -ChildPath velocityplugins
+$dir['ServerModule'] = Join-Path -Path $dir['Server'] -ChildPath mods
+$dir['SubModuleDependancy'] = Join-Path -Path $dir['Server'] -ChildPath dependencies
+$dir['World']= Join-Path -Path $dir['Server'] -ChildPath worlds -AdditionalChildPath world
+$dir['DataPack'] = Join-Path -Path $dir['World']-ChildPath datapacks
 
 ## Client directories
-$dir['Modules'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath mods
-$dir['ClientModules'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath mods
-$dir['ResourcePacks'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath resourcepacks
+$dir['ClientModule'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath mods
+$dir['ResourcePack'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath resourcepacks
+
+## Other Directories:
+$dir['NodeDependancy'] = Join-Path -Path $dir['Root'] -ChildPath 'node_modules'
 
 ## Blank [SourceSubModule] array
 [SourceSubModule[]]$sources = @()
@@ -319,7 +321,7 @@ do { # Main loop
             Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string[]]$buildReturn = $currentSource.InvokeBuild($dir['Root'],$dir['Sources'],$dir['Server'],$dir['Server'],$dir['Plugins'],$dir['VelocityPlugins'],$dir['Modules'],$dir['ServerModules'],$dir['ClientModules'],$dir['DataPacks'],$dir['ResourcePacks'],'',$dir['SubModuleDependancies'],$script:CleanAndPullRepo,$WhatIF)
+                [string[]]$buildReturn = $currentSource.InvokeBuild($dir, $script:CleanAndPullRepo, $WhatIF)
                 if (-not ($null -eq $buildReturn) -and ($buildReturn -is [string[]])) { $updatedFiles += $buildReturn }
             }
 
@@ -541,7 +543,7 @@ do { # Main loop
             Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string[]]$buildReturn = $currentSource.InvokeBuild($dir['Root'],$dir['Sources'],$dir['Server'],$dir['Server'],$dir['Plugins'],$dir['VelocityPlugins'],$dir['Modules'],$dir['ServerModules'],$dir['ClientModules'],$dir['DataPacks'],$dir['ResourcePacks'],'',$dir['SubModuleDependancies'],$script:CleanAndPullRepo,$WhatIF)
+                [string[]]$buildReturn = $currentSource.InvokeBuild($dir, $script:CleanAndPullRepo, $WhatIF)
                 if (-not ($null -eq $buildReturn) -and ($buildReturn -is [string[]])) { $updatedFiles += $buildReturn }
             }
             if ($updatedFiles.Count -gt 0) {
@@ -557,7 +559,7 @@ do { # Main loop
             Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dir['Startup']
-            [string[]]$buildReturn = $currentSource.InvokeBuild($dir['Root'],$dir['Sources'],$dir['Server'],$dir['Server'],$dir['Plugins'],$dir['VelocityPlugins'],$dir['Modules'],$dir['ServerModules'],$dir['ClientModules'],$dir['DataPacks'],$dir['ResourcePacks'],'',$dir['SubModuleDependancies'],$script:CleanAndPullRepo,$WhatIF)
+            [string[]]$buildReturn = $currentSource.InvokeBuild($dir, $script:CleanAndPullRepo, $WhatIF)
             if (-not ($null -eq $buildReturn) -and ($buildReturn -is [string[]])) { $updatedFiles += $buildReturn }
             if ($updatedFiles.Count -gt 0) {
                 Write-Host "Updated Files...`r`n$('=' * 120)" -ForegroundColor Green

@@ -114,9 +114,20 @@ class SourceSubModule {
         }
     }
     DisplayHeader(
-        [string]$DirectoryRoot #$script:dirRoot
+        [string]$DirectoryRoot
     ){
-        Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $($this.RelativePath($DirectoryRoot,(Get-Location)))`r`n$('=' * 120)" -ForegroundColor red
+        $this.DisplayHeader($DirectoryRoot, $false)
+    }
+    DisplayHeader(
+        [string]$DirectoryRoot,
+        [switch]$RelativePaths
+    ){
+        if ($RelativePaths) {
+            Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $($this.RelativePath($DirectoryRoot,(Get-Location)))`r`n$('=' * 120)" -ForegroundColor red
+        }
+        else {
+            Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $(Get-Location)`r`n$('=' * 120)" -ForegroundColor red
+        }
     }
     InvokeClean(
         [string]$PathSource
@@ -127,27 +138,15 @@ class SourceSubModule {
         $this.Repo.InvokeClean()
     }
     [string[]]InvokeBuild (
-            [string]$PathRoot,
-            [string]$PathSource,
-            [string]$PathServer,
-            [string]$PathScript,
-            [string]$PathPlugin,
-            [string]$PathVelocityPlugin,
-            [string]$PathModule,
-            [string]$PathServerModule,
-            [string]$PathClientModule,
-            [string]$PathDataPack,
-            [string]$PathResourcePack,
-            [string]$PathNodeDependancy,
-            [string]$PathSubModuleDependancy,
+            [hashtable]$Paths,
             [switch]$PerformCleanAndPull,
             [switch]$WhatIF
     ){
         [string[]]$updatedFiles = @()
-        $dirCurrentSource = Join-Path -Path $PathSource -ChildPath $this.Name
+        $dirCurrentSource = Join-Path -Path $Paths['Sources'] -ChildPath $this.Name
 
         Set-Location -Path $dirCurrentSource
-        $this.DisplayHeader($PathRoot)
+        $this.DisplayHeader(($Paths['Root']))
 
         if ($PerformCleanAndPull) {
             $this.Repo.InvokeClean($true)
@@ -163,21 +162,13 @@ class SourceSubModule {
 
             # Determine the copy to output file directory
             [string]$copyToFilePath = ''
-            switch ($build.OutputType) {
-                Other               { $copyToFilePath = $dirCurrentSource;        break; }
-                Server              { $copyToFilePath = $PathServer;              break; }
-                Script              { $copyToFilePath = $PathScript;              break; }
-                Plugin              { $copyToFilePath = $PathPlugin;              break; }
-                VelocityPlugin      { $copyToFilePath = $PathVelocityPlugin;      break; }
-                Module              { $copyToFilePath = $PathModule;              break; }
-                ServerModule        { $copyToFilePath = $PathServerModule;        break; }
-                ClientModule        { $copyToFilePath = $PathClientModule;        break; }
-                DataPack            { $copyToFilePath = $PathDataPack;            break; }
-                ResourcePack        { $copyToFilePath = $PathResourcePack;        break; }
-                NodeDependancy      { $copyToFilePath = $PathNodeDependancy;      break; }
-                SubModuleDependancy { $copyToFilePath = $PathSubModuleDependancy; break; }
+            if ($build.OutputType -like 'Other') { $copyToFilePath = $dirCurrentSource }
+            else {
+                [string]$buildOutputType = $build.OutputType
+                $copyToFilePath = $Paths.$buildOutputType
             }
-    
+            if ([string]::IsNullOrWhiteSpace($copyToFilePath)) { $copyToFilePath = $dirCurrentSource }
+
             # Determine the copy to output file name
             [string]$copyToFileName = ''
             if ( $build.OutputType -eq [OutputType]::Script ) {
@@ -193,8 +184,8 @@ class SourceSubModule {
             # Show current values before checking if a build is required
             $this.Repo.Display()
             Write-Console "$version" -Title 'Version'
-            Write-Console "`"$($this.RelativePath($PathServer, $(Join-Path -Path $dirCurrentSource -ChildPath $($build.GetOutput()))))`"" -Title 'Copy From'
-            Write-Console "`"$($this.RelativePath($PathServer, $copyToFileFullName))`"" -Title 'Copy To'
+            Write-Console "`"$($this.RelativePath($Paths['Server'], $(Join-Path -Path $dirCurrentSource -ChildPath $($build.GetOutput()))))`"" -Title 'Copy From'
+            Write-Console "`"$($this.RelativePath($Paths['Server'], $copyToFileFullName))`"" -Title 'Copy To'
     
             if ($build.PerformBuild) {
                 [string]$copyToExistingFilter = '^' + [System.Text.RegularExpressions.Regex]::Escape($copyToFileName) + '(\.disabled|\.backup)*$'
@@ -203,7 +194,7 @@ class SourceSubModule {
                 switch ($build.OutputType) {
                     Script {
                         [string]$copyFromFileName = Join-Path -Path $dirCurrentSource -ChildPath ($build.GetOutput())
-                        if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$PathServer,$WhatIF,$true)) { $updatedFiles += $copyToFileFullName }
+                        if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$Paths['Server'],$WhatIF,$true)) { $updatedFiles += $copyToFileFullName }
                         break
                     }
                     Other {
@@ -222,17 +213,17 @@ class SourceSubModule {
                                 $renameOldFileFilter = [System.Text.RegularExpressions.Regex]::Escape("$($this.GetFinalName())-") + '.*\-CUSTOM\+.*' + [System.Text.RegularExpressions.Regex]::Escape($build.GetOutputExtension()) + '$'
                                 $renameOldFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $renameOldFileFilter }
                                 foreach ($renameOldFile in $renameOldFiles) {
-                                    Write-Console "`"$($this.RelativePath($PathServer, $renameOldFile.FullName))`" to `"$($this.RelativePath($PathServer, $renameOldFile.FullName))^fE.disabled^fz`"" -Title 'Renaming'
-                                    if ($WhatIF) { Write-Console "Rename-Item -Path `"$($this.RelativePath($PathServer, $renameOldFile.FullName))`" -NewName `"$($this.RelativePath($PathServer, $renameOldFile.FullName)).disabled`" -Force -EA:0" -Title 'WhatIF'}
+                                    Write-Console "`"$($this.RelativePath($Paths['Server'], $renameOldFile.FullName))`" to `"$($this.RelativePath($Paths['Server'], $renameOldFile.FullName))^fE.disabled^fz`"" -Title 'Renaming'
+                                    if ($WhatIF) { Write-Console "Rename-Item -Path `"$($this.RelativePath($Paths['Server'], $renameOldFile.FullName))`" -NewName `"$($this.RelativePath($Paths['Server'], $renameOldFile.FullName)).disabled`" -Force -EA:0" -Title 'WhatIF'}
                                     else { Rename-Item -Path "$($renameOldFile.FullName)" -NewName "$($renameOldFile.FullName).disabled" -Force -EA:0 }
                                 }
                                 [string]$copyFromFileFullName = ($WhatIF ? '<buildOutputFile>' : $copyFromExistingFiles.FullName)
-                                if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$PathServer,$WhatIF,$false)) { $updatedFiles += $copyToFileFullName }
+                                if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$Paths['Server'],$WhatIF,$false)) { $updatedFiles += $copyToFileFullName }
                                 $build.InvokePostBuild($WhatIF)
                             }
                             else { Write-Console "^frNo build output file `"$copyFromExistingFiles`" found." -Title 'Error' }
                         }
-                        else { Write-Console "`"^fG$($this.RelativePath($PathServer, ($copyToExistingFiles|Select-Object -First 1).FullName))^fz`" is already up to date." }
+                        else { Write-Console "`"^fG$($this.RelativePath($Paths['Server'], ($copyToExistingFiles|Select-Object -First 1).FullName))^fz`" is already up to date." }
                     }
                 }
             }
