@@ -188,17 +188,17 @@ function Show-WhatIfInfo() {
 function Show-DirectoryInfo() {
     Write-Host "$('=' * 120)" -ForegroundColor Green
     Write-Host "Base Directories:" -ForegroundColor Green
-    Write-Host "`tRoot:           $dirRoot" -ForegroundColor Green
-    Write-Host "`tSources:        $dirSources" -ForegroundColor Green
-    Write-Host "`tDependancies:   $dirSubModuleDependancies" -ForegroundColor Green
+    Write-Host "`tRoot:           $($dir['Root'])" -ForegroundColor Green
+    Write-Host "`tSources:        $($dir['Sources'])" -ForegroundColor Green
+    Write-Host "`tDependancies:   $($dir['SubModuleDependancies'])" -ForegroundColor Green
     Write-Host "Server Directories:" -ForegroundColor Green
-    Write-Host "`tServer:         $dirServer" -ForegroundColor Green
-    Write-Host "`tPlugins:        $dirPlugins" -ForegroundColor Green
-    Write-Host "`tServer Mods:    $dirServerModules" -ForegroundColor Green
-    Write-Host "`tData Packs:     $dirDataPacks" -ForegroundColor Green
+    Write-Host "`tServer:         $($dir['Server'])" -ForegroundColor Green
+    Write-Host "`tPlugins:        $($dir['Plugins'])" -ForegroundColor Green
+    Write-Host "`tServer Mods:    $($dir['ServerModules'])" -ForegroundColor Green
+    Write-Host "`tData Packs:     $($dir['DataPacks'])" -ForegroundColor Green
     Write-Host "Client Directories:" -ForegroundColor Green
-    Write-Host "`tClient Mods:    $dirClientModules" -ForegroundColor Green
-    Write-Host "`tResource Packs: $dirResourcePacks" -ForegroundColor Green
+    Write-Host "`tClient Mods:    $($dir['ClientModules'])" -ForegroundColor Green
+    Write-Host "`tResource Packs: $($dir['ResourcePacks'])" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Green
     Write-Host "`tmyGit_URL:      $($script:myGit_URL)" -ForegroundColor Green
     foreach ($item in $global:JAVA_HOME) {
@@ -216,27 +216,28 @@ function Show-DirectoryInfo() {
 #####################
 $global:ProgressPreference = "SilentlyContinue"
 
+$dir = @{}
 ## Base directories
-$dirStartup = (Get-Location).Path
-$dirRoot = Split-Path ($MyInvocation.MyCommand.Path)
-if ($dirRoot -match '^(?<root>.*)[\\/]src[\\/]Manage[\\/]?$') {
-    $dirRoot = $Matches.root
+$dir['Startup'] = (Get-Location).Path
+$dir['Root'] = Split-Path ($MyInvocation.MyCommand.Path)
+if ($dir['Root'] -match '^(?<root>.*)[\\/]src[\\/]Manage[\\/]?$') {
+    $dir['Root'] = $Matches.root
 }
-$dirSources = Join-Path -Path $dirRoot -ChildPath src
+$dir['Sources'] = Join-Path -Path $dir['Root'] -ChildPath src
 
 ## Server directories
-$dirServer = $dirRoot
-$dirPlugins = Join-Path -Path $dirServer -ChildPath plugins
-$dirVelocityPlugins = Join-Path -Path $dirServer -ChildPath velocityplugins
-$dirServerModules = Join-Path -Path $dirServer -ChildPath mods
-$dirSubModuleDependancies = Join-Path -Path $dirServer -ChildPath dependencies
-$dirWorlds = Join-Path -Path $dirServer -ChildPath worlds -AdditionalChildPath world
-$dirDataPacks = Join-Path -Path $dirWorlds -ChildPath datapacks
+$dir['Server'] = $dir['Root']
+$dir['Plugins'] = Join-Path -Path $dir['Server'] -ChildPath plugins
+$dir['VelocityPlugins'] = Join-Path -Path $dir['Server'] -ChildPath velocityplugins
+$dir['ServerModules'] = Join-Path -Path $dir['Server'] -ChildPath mods
+$dir['SubModuleDependancies'] = Join-Path -Path $dir['Server'] -ChildPath dependencies
+$dir['Worlds']= Join-Path -Path $dir['Server'] -ChildPath worlds -AdditionalChildPath world
+$dir['DataPacks'] = Join-Path -Path $dir['Worlds']-ChildPath datapacks
 
 ## Client directories
-$dirModules = Join-Path -Path $dirRoot -ChildPath .minecraft -AdditionalChildPath mods
-$dirClientModules = Join-Path -Path $dirRoot -ChildPath .minecraft -AdditionalChildPath mods
-$dirResourcePacks = Join-Path -Path $dirRoot -ChildPath .minecraft -AdditionalChildPath resourcepacks
+$dir['Modules'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath mods
+$dir['ClientModules'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath mods
+$dir['ResourcePacks'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath resourcepacks
 
 ## Blank [SourceSubModule] array
 [SourceSubModule[]]$sources = @()
@@ -253,7 +254,7 @@ $exitScript = [ScriptBlock]::Create(@"
 
 
 ## Load configuration and submodule hashtables from manage.json
-LoadManageJSON -JsonContentPath "$dirRoot\manage.json" -JsonSchemaPath "$scriptPath\manage.schema.json"
+LoadManageJSON -JsonContentPath "$($dir['Root'])\manage.json" -JsonSchemaPath "$scriptPath\manage.schema.json"
 
 ## Load script configuration values from hashtable
 LoadConfiguration -ConfigurationData $script:ManageJSON.configuration
@@ -262,7 +263,7 @@ LoadConfiguration -ConfigurationData $script:ManageJSON.configuration
 LoadSourceSubModules -SubmodulesData $script:ManageJSON.submodules -SourcesArray ([ref]$sources)
 
 function CleanRootFolder {
-    Set-Location -Path $dirRoot
+    Set-Location -Path $dir['Root']
     Write-Host "Cleaning Root Folder"
     if ($script:WhatIF) { Write-Host 'WhatIF: git clean' }
     [string[]]$cleanArguments = @('clean')
@@ -302,6 +303,7 @@ do { # Main loop
         'Repositories - Clean',
         'Repositories - Reset',
         'Repositories - Repair',
+        'Repositories - Commit',
         'Build - Get Versions',
         'Build - Compile One',
         'Build - Compile All',
@@ -310,14 +312,14 @@ do { # Main loop
         'Configuration - Toggle WhatIF',
         'Configuration - Toggle ForcePull'
     )
-	$choice = Show-Choices -Title 'Select an action' -List $menuItems -NoSort -ExitPath $dirStartup -ExitScript $exitScript
+	$choice = Show-Choices -Title 'Select an action' -List $menuItems -NoSort -ExitPath $dir['Startup'] -ExitScript $exitScript
 	switch ($choice) {
         'Compile, Clean, Reset, Repair, and Commit' {
             # Compile
-            Push-Location -Path $dirSources -StackName 'MainLoop'
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string[]]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
+                [string[]]$buildReturn = $currentSource.InvokeBuild($dir['Root'],$dir['Sources'],$dir['Server'],$dir['Server'],$dir['Plugins'],$dir['VelocityPlugins'],$dir['Modules'],$dir['ServerModules'],$dir['ClientModules'],$dir['DataPacks'],$dir['ResourcePacks'],'',$dir['SubModuleDependancies'],$script:CleanAndPullRepo,$WhatIF)
                 if (-not ($null -eq $buildReturn) -and ($buildReturn -is [string[]])) { $updatedFiles += $buildReturn }
             }
 
@@ -343,12 +345,12 @@ do { # Main loop
 
 
             foreach ($currentSource in $sources) {
-                $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
+                $dirCurrent = Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
 
 
                 # Display current Source/Repo Header
-                $currentSource.DisplayHeader($dirRoot)
+                $currentSource.DisplayHeader($dir['Root'])
                 $currentSource.Repo.Display()
 
                 # Clean Individual Source
@@ -362,7 +364,7 @@ do { # Main loop
 
             }
 
-            Set-Location -Path $dirRoot
+            Set-Location -Path $dir['Root']
             Write-Console -Value "Commiting all changes...." -Title "Info"
             git add -A
             [string]$commitTime = Get-Date -Format "dddd, MMMM dd, yyyy 'at' HH:mm K"
@@ -380,31 +382,31 @@ do { # Main loop
            break
         }
         'Repositories - Initialize'{
-            Push-Location -Path $dirSources -StackName 'MainLoop'
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             Write-Host "Displaying Repository Details"
             foreach ($currentSource in $sources) {
-                $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
+                $dirCurrent = Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
-                $currentSource.DisplayHeader($dirRoot)
+                $currentSource.DisplayHeader($dir['Root'])
                 $currentSource.Repo.InvokeInitialize()
             }
             PressAnyKey
             break
         }
         'Repositories - Display Details'{
-            Push-Location -Path $dirSources -StackName 'MainLoop'
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             Write-Host "Displaying Repository Details"
             foreach ($currentSource in $sources) {
-                $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
+                $dirCurrent = Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
-                $currentSource.DisplayHeader($dirRoot)
+                $currentSource.DisplayHeader($dir['Root'])
                 $currentSource.Repo.Display()
             }
             PressAnyKey
             break
         }
 		'Repositories - Archive Untracked'{
-            Push-Location -Path $dirRoot -StackName 'MainLoop'
+            Push-Location -Path $dir['Root'] -StackName 'MainLoop'
             $files = @()
 
             #Setup untracked exceptions to exclude from the archive
@@ -422,17 +424,17 @@ do { # Main loop
             foreach ($item in $script:ArchiveAdditions) { $additions += [string]$item }
             # Retrieve untracked additions to add to the archive for each submodule
             foreach ($currentSource in $sources) {
-                foreach ($item in $currentSource.Repo.ArchiveAdditions) { $additions += Join-Path -Path $dirSources -ChildPath $currentSource.Name -AdditionalChildPath $item }
+                foreach ($item in $currentSource.Repo.ArchiveAdditions) { $additions += Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name -AdditionalChildPath $item }
             }
 
             $filesRoot = (git ls-files . --other @exceptions)
-            foreach ($file in $filesRoot) { $files += Resolve-Path -Path "$dirRoot\$file" }
+            foreach ($file in $filesRoot) { $files += Resolve-Path -Path "$($dir['Root'])\$file" }
 
             foreach ($file in $additions) {
                 if (Test-Path -Path $file){ $files += Resolve-Path -Path "$file" }
             }
 
-            $archiveFile = $(Join-Path -Path $dirRoot -ChildPath "$(Get-Date -Format 'yyyy-MM-dd@HH-mm')-untracked.zip")
+            $archiveFile = $(Join-Path -Path $dir['Root'] -ChildPath "$(Get-Date -Format 'yyyy-MM-dd@HH-mm')-untracked.zip")
             $archive = [System.IO.Compression.ZipFile]::Open($archiveFile,[System.IO.Compression.ZipArchiveMode]::Create)
             foreach ($file in $files) {
                 [string]$fullName = $file
@@ -454,33 +456,33 @@ do { # Main loop
 			break
 		}
 		'Repositories - Clean'{
-            Push-Location -Path $dirRoot -StackName 'MainLoop'
+            Push-Location -Path $dir['Root'] -StackName 'MainLoop'
 
             # Clean Root Folder
             CleanRootFolder
 
             # Clean Individual Source
             foreach ($currentSource in $sources) {
-                $currentSource.InvokeClean($dirSources)
+                $currentSource.InvokeClean($dir['Sources'])
             }
 
             PressAnyKey
             break
         }
         'Repositories - Reset' {
-            Push-Location -Path $dirSources -StackName 'MainLoop'
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             Write-Host "Resetting Repositories"
             foreach ($currentSource in $sources) {
-                $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
+                $dirCurrent = Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
-                $currentSource.DisplayHeader($dirRoot)
+                $currentSource.DisplayHeader($dir['Root'])
                 $currentSource.Repo.InvokeReset()
             }
             PressAnyKey
             break
         }
         'Repositories - Repair' {
-            Push-Location -Path $dirRoot -StackName 'MainLoop'
+            Push-Location -Path $dir['Root'] -StackName 'MainLoop'
             Write-Host "Repairing Root Folder"
             if ($script:WhatIF) {
                 Write-Console "git fsck --full --strict" -Title 'WhatIF'
@@ -496,42 +498,50 @@ do { # Main loop
                 git repack -ad
                 git prune
             }
-            Set-Location -Path $dirSources
+            Set-Location -Path $dir['Sources']
             Write-Host "Repair Repositories"
             foreach ($currentSource in $sources) {
-                $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
+                $dirCurrent = Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
-                $currentSource.DisplayHeader($dirRoot)
+                $currentSource.DisplayHeader($dir['Root'])
                 $currentSource.Repo.InvokeRepair()
             }
             PressAnyKey
             break
         }
+        'Repositories - Commit' {
+            Set-Location -Path $dir['Root']
+            Write-Console -Value "Commiting all changes...." -Title "Info"
+            git add -A
+            [string]$commitTime = Get-Date -Format "dddd, MMMM dd, yyyy 'at' HH:mm K"
+            git commit -m "Auto-update: $commitTime"
+            git push
+        }
         'Repositories - Compare All'{
-            Push-Location -Path $dirSources -StackName 'MainLoop'
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             Write-Host "Comparing Branches on all Repositories"
             foreach ( $currentSource in $sources ) {
-                Set-Location -Path $(Join-Path -Path $dirSources -ChildPath $($currentSource.Name))
-                $currentSource.DisplayHeader($dirRoot)
+                Set-Location -Path $(Join-Path -Path $dir['Sources'] -ChildPath $($currentSource.Name))
+                $currentSource.DisplayHeader($dir['Root'])
                 $currentSource.Repo.CompareAheadBehind()
             }
             PressAnyKey
             break
         }
         'Repositories - Compare One'{
-            Push-Location -Path $dirSources -StackName 'MainLoop'
-            $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dirStartup
-            Set-Location -Path $(Join-Path -Path $dirSources -ChildPath $($currentSource.Name))
-            $currentSource.DisplayHeader($dirRoot)
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
+            $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dir['Startup']
+            Set-Location -Path $(Join-Path -Path $dir['Sources'] -ChildPath $($currentSource.Name))
+            $currentSource.DisplayHeader($dir['Root'])
             $currentSource.Repo.CompareAheadBehind()
             PressAnyKey
             break
         }
 		'Build - Compile All'{
-            Push-Location -Path $dirSources -StackName 'MainLoop'
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
             foreach ( $currentSource in $sources ) {
-                [string[]]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
+                [string[]]$buildReturn = $currentSource.InvokeBuild($dir['Root'],$dir['Sources'],$dir['Server'],$dir['Server'],$dir['Plugins'],$dir['VelocityPlugins'],$dir['Modules'],$dir['ServerModules'],$dir['ClientModules'],$dir['DataPacks'],$dir['ResourcePacks'],'',$dir['SubModuleDependancies'],$script:CleanAndPullRepo,$WhatIF)
                 if (-not ($null -eq $buildReturn) -and ($buildReturn -is [string[]])) { $updatedFiles += $buildReturn }
             }
             if ($updatedFiles.Count -gt 0) {
@@ -544,10 +554,10 @@ do { # Main loop
             break
         }
         'Build - Compile One'{
-            Push-Location -Path $dirSources -StackName 'MainLoop'
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             [string[]]$updatedFiles = @()
-            $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dirStartup
-            [string[]]$buildReturn = $currentSource.InvokeBuild($dirRoot,$dirSources,$dirServer,$dirServer,$dirPlugins,$dirVelocityPlugins,$dirModules,$dirServerModules,$dirClientModules,$dirDataPacks,$dirResourcePacks,'',$dirSubModuleDependancies,$script:CleanAndPullRepo,$WhatIF)
+            $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dir['Startup']
+            [string[]]$buildReturn = $currentSource.InvokeBuild($dir['Root'],$dir['Sources'],$dir['Server'],$dir['Server'],$dir['Plugins'],$dir['VelocityPlugins'],$dir['Modules'],$dir['ServerModules'],$dir['ClientModules'],$dir['DataPacks'],$dir['ResourcePacks'],'',$dir['SubModuleDependancies'],$script:CleanAndPullRepo,$WhatIF)
             if (-not ($null -eq $buildReturn) -and ($buildReturn -is [string[]])) { $updatedFiles += $buildReturn }
             if ($updatedFiles.Count -gt 0) {
                 Write-Host "Updated Files...`r`n$('=' * 120)" -ForegroundColor Green
@@ -559,9 +569,9 @@ do { # Main loop
             break
         }
         'Build - Get Versions'{
-            Push-Location -Path $dirSources -StackName 'MainLoop'
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             foreach ( $currentSource in $sources ) {
-                $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
+                $dirCurrent = Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
                 Write-Host $currentSource.GetFinalName()
                 foreach ($build in $currentSource.Builds) {
@@ -574,9 +584,9 @@ do { # Main loop
             break
         }
         'Repositories - Checkout' {
-            Push-Location -Path $dirSources -StackName 'MainLoop'
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             foreach ( $currentSource in $sources ) {
-                $dirCurrent = Join-Path -Path $dirSources -ChildPath $currentSource.Name
+                $dirCurrent = Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name
                 Set-Location -Path $dirCurrent
                 Write-Host $currentSource.GetFinalName()
                 $currentSource.Repo.InvokeCheckout()
@@ -585,12 +595,12 @@ do { # Main loop
             break
         }
         'Configuration - Reload Generic' {
-            LoadManageJSON -JsonContentPath "$dirRoot\manage.json" -JsonSchemaPath "$dirRoot\manage.schema.json"
+            LoadManageJSON -JsonContentPath "$($dir['Root'])\manage.json" -JsonSchemaPath "$($dir['Root'])\manage.schema.json"
             LoadConfiguration -ConfigurationData $script:ManageJSON.configuration
             break
         }
         'Configuration - Reload Submodules' {
-            LoadManageJSON -JsonContentPath "$dirRoot\manage.json" -JsonSchemaPath "$dirRoot\manage.schema.json"
+            LoadManageJSON -JsonContentPath "$($dir['Root'])\manage.json" -JsonSchemaPath "$($dir['Root'])\manage.schema.json"
             LoadSourceSubModules -SubmodulesData $script:ManageJSON.submodules -SourcesArray ([ref]$sources)
             break
         }
