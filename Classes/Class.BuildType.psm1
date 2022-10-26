@@ -154,9 +154,11 @@ class BuildType {
     InvokeBuild([switch]$WhatIF){
         if ($this.HasCommand()) { 
             [string]$thisCommand = $this.ReplaceScriptJAVA_HOME($this.GetCommand())
-            if ($WhatIF) { Write-Console "$thisCommand" -Title 'WhatIF'}
+            [string]$thisCommandConsole = $thisCommand -replace '\b(java|"-Xmx64m"|"-Xms64m"|"-Dfile\.encoding=UTF-8"|"-Dsun\.stdout\.encoding=UTF-8"|"-Dsun\.stderr\.encoding=UTF-8"|-classpath "\.\\gradle\\wrapper\\gradle-wrapper\.jar"|org\.gradle\.wrapper\.GradleWrapperMain|--no-daemon|--quiet|--warning-mode=none|--console=rich")\b', ''
+            $thisCommandConsole = $thisCommandConsole -replace '"-Dorg\.gradle\.appname=gradlew"', 'Gradle Task: '
+            if ($WhatIF) { Write-Console "$thisCommandConsole" -Title 'WhatIF'}
             else {
-                Write-Console "`"$thisCommand`""  -Title 'Executing'
+                Write-Console "`"$thisCommandConsole`""  -Title 'Executing'
                 $currentProcess = Start-Process -FilePath "$env:ComSpec" -ArgumentList "/c $thisCommand" -NoNewWindow -PassThru
                 $currentProcess.WaitForExit()
             }
