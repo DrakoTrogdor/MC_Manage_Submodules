@@ -154,8 +154,10 @@ class BuildType {
     InvokeBuild([switch]$WhatIF){
         if ($this.HasCommand()) { 
             [string]$thisCommand = $this.ReplaceScriptJAVA_HOME($this.GetCommand())
-            [string]$thisCommandConsole = $thisCommand -replace '\b(java|"-Xmx64m"|"-Xms64m"|"-Dfile\.encoding=UTF-8"|"-Dsun\.stdout\.encoding=UTF-8"|"-Dsun\.stderr\.encoding=UTF-8"|-classpath "\.\\gradle\\wrapper\\gradle-wrapper\.jar"|org\.gradle\.wrapper\.GradleWrapperMain|--no-daemon|--quiet|--warning-mode=none|--console=rich")\b', ''
+            [string]$thisCommandConsole = $thisCommand -replace '(java|"-Xmx64m"|"-Xms64m"|"-Dfile\.encoding=UTF-8"|"-Dsun\.stdout\.encoding=UTF-8"|"-Dsun\.stderr\.encoding=UTF-8"|-classpath "\.\\gradle\\wrapper\\gradle-wrapper\.jar"|org\.gradle\.wrapper\.GradleWrapperMain|--no-daemon|--quiet|--warning-mode=none|--console=rich)', ''
             $thisCommandConsole = $thisCommandConsole -replace '"-Dorg\.gradle\.appname=gradlew"', 'Gradle Task: '
+            $thisCommandConsole = $thisCommandConsole -replace '\s{2,}', ' '
+            $thisCommandConsole = $thisCommandConsole.Trim()
             if ($WhatIF) { Write-Console "$thisCommandConsole" -Title 'WhatIF'}
             else {
                 Write-Console "`"$thisCommandConsole`""  -Title 'Executing'
