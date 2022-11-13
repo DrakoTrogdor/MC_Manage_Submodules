@@ -221,7 +221,10 @@ class SourceSubModule {
                                 if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$Paths['Server'],$WhatIF,$false)) { $updatedFiles += $copyToFileFullName }
                                 $build.InvokePostBuild($WhatIF)
                             }
-                            else { Write-Console "^frNo build output file `"$copyFromExistingFiles`" found." -Title 'Error' }
+                            else {
+                                Write-Console "^frCannot copy to `"$copyToFileFullName`", source file not found." -Title 'Error'
+                                $updatedFiles += "ERROR: " + $copyToFileFullName
+                            }
                         }
                         else { Write-Console "`"^fG$($this.RelativePath($Paths['Server'], ($copyToExistingFiles|Select-Object -First 1).FullName))^fz`" is already up to date." }
                     }

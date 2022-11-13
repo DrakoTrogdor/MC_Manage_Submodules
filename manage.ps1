@@ -375,10 +375,15 @@ do { # Main loop
 
             # List all updated files
             if ($updatedFiles.Count -gt 0) {
-               Write-Host "Updated Files...`r`n$('=' * 120)" -ForegroundColor Green
-               foreach ($item in $updatedFiles) {
-                   Write-Host "`t$item" -ForegroundColor Green
-               }
+                Write-Host "Updated Files...`r`n$('=' * 120)" -ForegroundColor Green
+                foreach ($item in $updatedFiles) {
+                    if ($item -like "ERROR:*") {
+                        Write-Host "`t$item" -ForegroundColor Red
+                    }
+                    else {
+                        Write-Host "`t$item" -ForegroundColor Green
+                    }
+                }
             }
             PressAnyKey
            break
