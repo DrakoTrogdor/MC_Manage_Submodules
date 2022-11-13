@@ -554,9 +554,14 @@ do { # Main loop
             if ($updatedFiles.Count -gt 0) {
                Write-Host "Updated Files...`r`n$('=' * 120)" -ForegroundColor Green
                foreach ($item in $updatedFiles) {
-                   Write-Host "`t$item" -ForegroundColor Green
-               }
+                if ($item -like "ERROR:*") {
+                    Write-Host "`t$item" -ForegroundColor Red
+                }
+                else {
+                    Write-Host "`t$item" -ForegroundColor Green
+                }
             }
+        }
             PressAnyKey
             break
         }
@@ -569,7 +574,12 @@ do { # Main loop
             if ($updatedFiles.Count -gt 0) {
                 Write-Host "Updated Files...`r`n$('=' * 120)" -ForegroundColor Green
                 foreach ($item in $updatedFiles) {
-                    Write-Host "`t$item" -ForegroundColor Green
+                    if ($item -like "ERROR:*") {
+                        Write-Host "`t$item" -ForegroundColor Red
+                    }
+                    else {
+                        Write-Host "`t$item" -ForegroundColor Green
+                    }
                 }
             }
             PressAnyKey
