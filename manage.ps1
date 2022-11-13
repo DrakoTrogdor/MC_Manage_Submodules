@@ -188,27 +188,27 @@ function Show-WhatIfInfo() {
 function Show-DirectoryInfo() {
     Write-Host "$('=' * 120)" -ForegroundColor Green
     Write-Host "Base Directories:" -ForegroundColor Green
-    Write-Host "`tRoot:           $($dir['Root'])" -ForegroundColor Green
+    Write-Host "`tRoot:                 $($dir['Root'])" -ForegroundColor Green
     Write-Host "Source Directories:" -ForegroundColor Green
-    Write-Host "`tSources:        $($dir['Sources'])" -ForegroundColor Green
-    Write-Host "`tSubmodule Dependancies:   $($dir['SubModuleDependancy'])" -ForegroundColor Green
-    Write-Host "`tNode Dependancies:   $($dir['NodeDependancy'])" -ForegroundColor Green
+    Write-Host "`tSources:              $($dir['Sources'])" -ForegroundColor Green
+    Write-Host "`tModule Dependancies:  $($dir['SubModuleDependancy'])" -ForegroundColor Green
+    Write-Host "`tNode Dependancies:    $($dir['NodeDependancy'])" -ForegroundColor Green
     Write-Host "Output Directories:" -ForegroundColor Green
-    Write-Host "`tServer:         $($dir['Server'])" -ForegroundColor Green
-    Write-Host "`tServer Plugins:        $($dir['Plugin'])" -ForegroundColor Green
-    Write-Host "`Velocity Plugins:        $($dir['VelocityPlugin'])" -ForegroundColor Green
-    Write-Host "`tServer Mods:    $($dir['ServerModule'])" -ForegroundColor Green
-    Write-Host "`tClient Mods:    $($dir['ClientModule'])" -ForegroundColor Green
-    Write-Host "`tData Packs:     $($dir['DataPack'])" -ForegroundColor Green
-    Write-Host "`tResource Packs: $($dir['ResourcePack'])" -ForegroundColor Green
+    Write-Host "`tServer:               $($dir['Server'])" -ForegroundColor Green
+    Write-Host "`tServer Plugins:       $($dir['Plugin'])" -ForegroundColor Green
+    Write-Host "`tVelocity Plugins:     $($dir['VelocityPlugin'])" -ForegroundColor Green
+    Write-Host "`tServer Mods:          $($dir['ServerModule'])" -ForegroundColor Green
+    Write-Host "`tClient Mods:          $($dir['ClientModule'])" -ForegroundColor Green
+    Write-Host "`tData Packs:           $($dir['DataPack'])" -ForegroundColor Green
+    Write-Host "`tResource Packs:       $($dir['ResourcePack'])" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Green
-    Write-Host "`tmyGit_URL:      $($script:myGit_URL)" -ForegroundColor Green
+    Write-Host "`tmyGit_URL:            $($script:myGit_URL)" -ForegroundColor Green
     foreach ($item in $global:JAVA_HOME) {
-        [int]$spaces = 4 - ([string]($item.Keys[0])).Length
+        [int]$spaces = 10 - ([string]($item.Keys[0])).Length
         $spaces = $spaces -gt 0 ? $spaces : 0
         Write-Host "`tJAVA_HOME($($item.Keys[0])):$(' ' * $spaces)$($item.Values[0])" -ForegroundColor Green
     }
-    Write-Host "`tSubmodules:     $($sources.Count)" -ForegroundColor Green
+    Write-Host "`tSubmodules:           $($sources.Count)" -ForegroundColor Green
     Write-Host "$('=' * 120)" -ForegroundColor Green
 }
 
