@@ -227,15 +227,15 @@ $dir['Sources'] = Join-Path -Path $dir['Root'] -ChildPath src
 
 ## Server directories
 $dir['Server'] = $dir['Root']
-$dir['Plugin'] = Join-Path -Path $dir['Server'] -ChildPath plugins
-$dir['VelocityPlugin'] = Join-Path -Path $dir['Server'] -ChildPath velocityplugins
-$dir['ServerModule'] = Join-Path -Path $dir['Server'] -ChildPath mods
+$dir['Plugin'] = Join-Path -Path $dir['Server'] -ChildPath server-plugins
+$dir['VelocityPlugin'] = Join-Path -Path $dir['Server'] -ChildPath velocity-plugins
+$dir['ServerModule'] = Join-Path -Path $dir['Server'] -ChildPath server-mods
 $dir['SubModuleDependancy'] = Join-Path -Path $dir['Server'] -ChildPath dependencies
 $dir['World']= Join-Path -Path $dir['Server'] -ChildPath worlds -AdditionalChildPath world
 $dir['DataPack'] = Join-Path -Path $dir['World']-ChildPath datapacks
 
 ## Client directories
-$dir['ClientModule'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath mods
+$dir['ClientModule'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath client-mods
 $dir['ResourcePack'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath resourcepacks
 
 ## Other Directories:
