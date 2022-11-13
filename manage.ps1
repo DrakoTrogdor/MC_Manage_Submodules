@@ -189,15 +189,17 @@ function Show-DirectoryInfo() {
     Write-Host "$('=' * 120)" -ForegroundColor Green
     Write-Host "Base Directories:" -ForegroundColor Green
     Write-Host "`tRoot:           $($dir['Root'])" -ForegroundColor Green
+    Write-Host "Source Directories:" -ForegroundColor Green
     Write-Host "`tSources:        $($dir['Sources'])" -ForegroundColor Green
-    Write-Host "`tDependancies:   $($dir['SubModuleDependancy'])" -ForegroundColor Green
-    Write-Host "Server Directories:" -ForegroundColor Green
+    Write-Host "`tSubmodule Dependancies:   $($dir['SubModuleDependancy'])" -ForegroundColor Green
+    Write-Host "`tNode Dependancies:   $($dir['NodeDependancy'])" -ForegroundColor Green
+    Write-Host "Output Directories:" -ForegroundColor Green
     Write-Host "`tServer:         $($dir['Server'])" -ForegroundColor Green
-    Write-Host "`tPlugins:        $($dir['Plugin'])" -ForegroundColor Green
+    Write-Host "`tServer Plugins:        $($dir['Plugin'])" -ForegroundColor Green
+    Write-Host "`Velocity Plugins:        $($dir['VelocityPlugin'])" -ForegroundColor Green
     Write-Host "`tServer Mods:    $($dir['ServerModule'])" -ForegroundColor Green
-    Write-Host "`tData Packs:     $($dir['DataPack'])" -ForegroundColor Green
-    Write-Host "Client Directories:" -ForegroundColor Green
     Write-Host "`tClient Mods:    $($dir['ClientModule'])" -ForegroundColor Green
+    Write-Host "`tData Packs:     $($dir['DataPack'])" -ForegroundColor Green
     Write-Host "`tResource Packs: $($dir['ResourcePack'])" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Green
     Write-Host "`tmyGit_URL:      $($script:myGit_URL)" -ForegroundColor Green
@@ -223,23 +225,20 @@ $dir['Root'] = Split-Path ($MyInvocation.MyCommand.Path)
 if ($dir['Root'] -match '^(?<root>.*)[\\/]src[\\/]Manage[\\/]?$') {
     $dir['Root'] = $Matches.root
 }
+
+## Source Directories:
 $dir['Sources'] = Join-Path -Path $dir['Root'] -ChildPath src
-
-## Server directories
-$dir['Server'] = $dir['Root']
-$dir['Plugin'] = Join-Path -Path $dir['Server'] -ChildPath server-plugins
-$dir['VelocityPlugin'] = Join-Path -Path $dir['Server'] -ChildPath velocity-plugins
-$dir['ServerModule'] = Join-Path -Path $dir['Server'] -ChildPath server-mods
-$dir['SubModuleDependancy'] = Join-Path -Path $dir['Server'] -ChildPath dependencies
-$dir['World']= Join-Path -Path $dir['Server'] -ChildPath worlds -AdditionalChildPath world
-$dir['DataPack'] = Join-Path -Path $dir['World']-ChildPath datapacks
-
-## Client directories
-$dir['ClientModule'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath client-mods
-$dir['ResourcePack'] = Join-Path -Path $dir['Root'] -ChildPath .minecraft -AdditionalChildPath resourcepacks
-
-## Other Directories:
+$dir['SubModuleDependancy'] = Join-Path -Path $dir['Root'] -ChildPath dependencies
 $dir['NodeDependancy'] = Join-Path -Path $dir['Root'] -ChildPath 'node_modules'
+
+## Output Directories:
+$dir['Server'] = $dir['Root']
+$dir['Plugin'] = Join-Path -Path $dir['Root'] -ChildPath server-plugins
+$dir['VelocityPlugin'] = Join-Path -Path $dir['Root'] -ChildPath velocity-plugins
+$dir['ServerModule'] = Join-Path -Path $dir['Root'] -ChildPath server-mods
+$dir['DataPack'] = Join-Path -Path $dir['Root'] -ChildPath datapacks
+$dir['ClientModule'] = Join-Path -Path $dir['Root'] -ChildPath client-mods
+$dir['ResourcePack'] = Join-Path -Path $dir['Root'] -ChildPath 'instances/client/.minecraft' -AdditionalChildPath resourcepacks
 
 ## Blank [SourceSubModule] array
 [SourceSubModule[]]$sources = @()
@@ -270,16 +269,23 @@ function CleanRootFolder {
     if ($script:WhatIF) { Write-Host 'WhatIF: git clean' }
     [string[]]$cleanArguments = @('clean')
     $cleanArguments += ($script:WhatIF ? '-nxfd' : '-xfd')
-    $cleanArguments += @('-e','plugins/')
-    $cleanArguments += @('-e','mods/')
-    $cleanArguments += @('-e','velocityplugins/')
-    $cleanArguments += @('-e','worlds/')
-    $cleanArguments += @('-e','worlds/world/datapacks/')
-    $cleanArguments += @('-e','.minecraft/mods/')
-    $cleanArguments += @('-e','.minecraft/resourcepacks/')
-    $cleanArguments += @('-e','????-??-??@??-??-untracked.zip')
-    $cleanArguments += @('-e','Untracked/')
+
+    ## Output Folders
+    $cleanArguments += @('-e','client-mods/')
+    $cleanArguments += @('-e','server-mods/')
+    $cleanArguments += @('-e','server-plugins/')
+    $cleanArguments += @('-e','velocity-plugins/')
+    $cleanArguments += @('-e','datapacks/')
+
+    ## Other Folders
     $cleanArguments += @('-e','backups/')
+    $cleanArguments += @('-e','dependencies/')
+    $cleanArguments += @('-e','instances/')
+    $cleanArguments += @('-e','patches/')
+    $cleanArguments += @('-e','Untracked/')
+
+    ## Other Files
+    $cleanArguments += @('-e','????-??-??@??-??-untracked.zip')
 
     foreach ($item in $script:CleanExceptions) {
         $cleanArguments += @('-e',[string]$item)
