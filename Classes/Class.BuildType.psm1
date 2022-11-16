@@ -10,6 +10,7 @@ enum OutputType {
     Module
     ServerModule
     ClientModule
+    AlternateModule
     DataPack
     ResourcePack
     NodeDependancy
@@ -65,6 +66,7 @@ class BuildType {
                 "Module"              { $tmpOutputType = [OutputType]::Module;              break }
                 "ServerModule"        { $tmpOutputType = [OutputType]::ServerModule;        break }
                 "ClientModule"        { $tmpOutputType = [OutputType]::ClientModule;        break }
+                "AlternateModule"     { $tmpOutputType = [OutputType]::AlternateModule;     break }
                 "DataPack"            { $tmpOutputType = [OutputType]::DataPack;            break }
                 "ResourcePack"        { $tmpOutputType = [OutputType]::ResourcePack;        break }
                 "NodeDependancy"      { $tmpOutputType = [OutputType]::NodeDependancy;      break }

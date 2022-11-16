@@ -64,6 +64,7 @@
                         "Module",
                         "ServerModule",
                         "ClientModule",
+                        "AlternateModule",
                         "DataPack",
                         "ResourcePack",
                         "NodeDependancy",

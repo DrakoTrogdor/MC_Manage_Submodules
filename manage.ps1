@@ -199,6 +199,7 @@ function Show-DirectoryInfo() {
     Write-Host "`tVelocity Plugins:     $($dir['VelocityPlugin'])" -ForegroundColor Green
     Write-Host "`tServer Mods:          $($dir['ServerModule'])" -ForegroundColor Green
     Write-Host "`tClient Mods:          $($dir['ClientModule'])" -ForegroundColor Green
+    Write-Host "`tAlternate Mods:       $($dir['AlternateModule'])" -ForegroundColor Green
     Write-Host "`tData Packs:           $($dir['DataPack'])" -ForegroundColor Green
     Write-Host "`tResource Packs:       $($dir['ResourcePack'])" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Green
@@ -238,6 +239,7 @@ $dir['VelocityPlugin'] = Join-Path -Path $dir['Root'] -ChildPath velocity-plugin
 $dir['ServerModule'] = Join-Path -Path $dir['Root'] -ChildPath server-mods
 $dir['DataPack'] = Join-Path -Path $dir['Root'] -ChildPath datapacks
 $dir['ClientModule'] = Join-Path -Path $dir['Root'] -ChildPath client-mods
+$dir['AlternateModule'] = Join-Path -Path $dir['Root'] -ChildPath alt-mods
 $dir['ResourcePack'] = Join-Path -Path $dir['Root'] -ChildPath 'instances/client/.minecraft' -AdditionalChildPath resourcepacks
 
 ## Blank [SourceSubModule] array
