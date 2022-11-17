@@ -273,6 +273,7 @@ function CleanRootFolder {
     $cleanArguments += ($script:WhatIF ? '-nxfd' : '-xfd')
 
     ## Output Folders
+    $cleanArguments += @('-e','alt-mods/')
     $cleanArguments += @('-e','client-mods/')
     $cleanArguments += @('-e','server-mods/')
     $cleanArguments += @('-e','server-plugins/')
