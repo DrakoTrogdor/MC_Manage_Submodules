@@ -156,7 +156,7 @@ class BuildType {
     InvokeBuild([switch]$WhatIF){
         if ($this.HasCommand()) { 
             [string]$thisCommand = $this.ReplaceScriptJAVA_HOME($this.GetCommand())
-            [string]$thisCommandConsole = $thisCommand -replace '(java|"-Xmx64m"|"-Xms64m"|"-Dfile\.encoding=UTF-8"|"-Dsun\.stdout\.encoding=UTF-8"|"-Dsun\.stderr\.encoding=UTF-8"|-classpath "\.\\gradle\\wrapper\\gradle-wrapper\.jar"|org\.gradle\.wrapper\.GradleWrapperMain|--no-daemon|--quiet|--warning-mode=none|--console=rich|-DXdoclint=none)', ''
+            [string]$thisCommandConsole = $thisCommand -replace '(java|"-Xmx64m"|"-Xms64m"|"-Dfile\.encoding=UTF-8"|"-Dsun\.stdout\.encoding=UTF-8"|"-Dsun\.stderr\.encoding=UTF-8"|-classpath "\.\\gradle\\wrapper\\gradle-wrapper\.jar"|org\.gradle\.wrapper\.GradleWrapperMain|--no-daemon|--quiet|--warning-mode=none|--console=rich|-DXdoclint=none|-DXlint=none)', ''
             $thisCommandConsole = $thisCommandConsole -replace '"-Dorg\.gradle\.appname=gradlew"', 'Gradle Task: '
             $thisCommandConsole = $thisCommandConsole -replace '\s{2,}', ' '
             $thisCommandConsole = $thisCommandConsole.Trim()
@@ -315,7 +315,7 @@ class BuildTypeGradle : BuildTypeJava {
     [string]GetCommand() {
         [string]$buildCommand = [string]::IsNullOrWhiteSpace($this.Command) ? 'build' : $this.Command
         [string]$gradlewCommand = [string]::IsNullOrWhiteSpace($this.JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '^java', "java $($this.JAVA_OPTS)"
-        return "$gradlewCommand $buildCommand --no-daemon --quiet --warning-mode=none --console=rich -DXdoclint=none"
+        return "$gradlewCommand $buildCommand --no-daemon --quiet --warning-mode=none --console=rich -DXdoclint=none -DXlint=none"
     }
     [string]GetVersion(){ return $this.GetVersion($false) }
     [string]GetVersion([switch]$RawVersion) {
