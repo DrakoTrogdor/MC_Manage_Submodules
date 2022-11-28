@@ -262,8 +262,8 @@ class SourceSubModule {
                 else { Write-Console "^fMBuilding of this submodule is currently disabled.^fz" }
             }
         }
-        else{
-            else { Write-Console "All outputs for commit `"^fG$($commit)^fz`" already exist." }
+        else {
+            Write-Console "All outputs for commit `"^fG$($commit)^fz`" already exist."
         }
         return $updatedFiles
     }
