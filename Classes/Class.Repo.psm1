@@ -505,17 +505,28 @@ class GitRepo {
         if ($upstream -eq 'DETATCHED') { $upstream = 'origin' }
         if ($script:WhatIF) {
             Write-Console "git fsck --full --strict" -Title 'WhatIF'
-            Write-Console "git prune" -Title 'WhatIF'
-            Write-Console "git reflog expire --expire=now --all" -Title 'WhatIF'
+            Write-Console "git reflog expire --expire=now --expire-unreachable=now --stale-fix --all" -Title 'WhatIF'
+            Write-Console "git fetch --tags --prune-tags --force" -Title 'WhatIF'
+            $this.RemoteRepos | ForEach-Object {
+                $currentRemote = $_.Name
+                Write-Console "git remote prune $currentRemote" -Title 'WhatIF'
+            }
+            
+            Write-Console "git gc --prune=now" -Title 'WhatIF'
             Write-Console "git repack -ad" -Title 'WhatIF'
-            Write-Console "git prune" -Title 'WhatIF'
+            Write-Console "git commit-graph write" -Title 'WhatIF'
         }
         else {
             git fsck --full --strict
-            git prune
-            git reflog expire --expire=now --all
+            git reflog expire --expire=now --expire-unreachable=now --stale-fix --all
+            git fetch --tags --prune-tags --force
+            $this.RemoteRepos | ForEach-Object {
+                $currentRemote = $_.Name
+                git remote prune $currentRemote
+            }
+            git gc --prune=now
             git repack -ad
-            git prune
+            git commit-graph write
         }
     }
     [void]InvokeRepair() { $this.InvokeRepair($false) }
