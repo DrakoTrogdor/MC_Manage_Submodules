@@ -161,3 +161,20 @@ function ReplaceInFile {
     $content = $content -replace "$searchRegExp","$replaceString"
     Set-Content -Path $File -Value $content -NoNewline
 }
+function ExecuteGradleTask {
+    param (
+        [string]$gradleTask,
+        [Parameter(Mandatory=$false)][string]$JAVA_OPTS,
+        [Parameter(Mandatory=$false)][Switch]$plainText,
+        [Parameter(Mandatory=$false)][Switch]$Quiet
+    )
+    [string]$gradlewInvokeString = [string]::IsNullOrWhiteSpace($JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '(java(?:.exe)?[''"]?)', "`$1 $JAVA_OPTS"
+    $gradlewInvokeString += " $gradleTask $([BuildTypeGradle]::gradleOptions -join ' ')"
+    if ($plainText) {
+        $gradlewInvokeString = $gradlewInvokeString -replace '--console=\w+', ''
+        $gradlewInvokeString = '--console=plain'
+    }
+    if (!$Quiet) { Write-Console "Gradle Task: $gradleTask" -Title "Executing" }
+    $currentProcess = Start-Process -FilePath "$env:ComSpec" -ArgumentList "/c $gradlewInvokeString" -NoNewWindow -PassThru
+    $currentProcess.WaitForExit()
+}

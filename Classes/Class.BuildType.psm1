@@ -98,12 +98,12 @@ class BuildType {
             if ([string]::IsNullOrWhiteSpace($this.VersionCommand)) {
                 $this.generatedRawVersion = ""
             }
-            elseif ($this.VersionCommand.StartsWith("PowerShell:")) {
-                [String]$tempCommand = $this.VersionCommand.TrimStart("PowerShell:")
-                $this.generatedRawVersion  = (Invoke-Expression -Command "$tempCommand")
+            elseif ($this.VersionCommand -match '^(?:\"(.*)\"|\"?(\d+\.\d+\.\d+)\"?)$'){
+                $this.generatedRawVersion = $Matches[1]
             }
             else {
-                $this.generatedRawVersion   = $this.VersionCommand
+                [String]$tempCommand = $this.VersionCommand
+                $this.generatedRawVersion  = (Invoke-Expression -Command "$tempCommand")
             }
         }
         if([string]::IsNullOrWhiteSpace($this.generatedCleanVersion)) { $this.generatedCleanVersion = $this.CleanVersion($this.generatedRawVersion) }
@@ -133,7 +133,9 @@ class BuildType {
         }
         return $Value
     }
-
+    [string]GetInvokeBuildConsoleDescription(){
+        return "Basic Task: $($this.Command)"
+    }
     InvokeInitBuild(){ $this.InvokeInitBuild($false) }
     InvokePreBuild(){ $this.InvokePreBuild($false) }
     InvokeBuild(){ $this.InvokeBuild($false) }
@@ -156,10 +158,7 @@ class BuildType {
     InvokeBuild([switch]$WhatIF){
         if ($this.HasCommand()) { 
             [string]$thisCommand = $this.ReplaceScriptJAVA_HOME($this.GetCommand())
-            [string]$thisCommandConsole = $thisCommand -replace '(java|"-Xmx64m"|"-Xms64m"|"-Dfile\.encoding=UTF-8"|"-Dsun\.stdout\.encoding=UTF-8"|"-Dsun\.stderr\.encoding=UTF-8"|-classpath "\.\\gradle\\wrapper\\gradle-wrapper\.jar"|org\.gradle\.wrapper\.GradleWrapperMain|--no-daemon|--quiet|--warning-mode=none|--console=rich|-DXdoclint=none|-DXlint=none)', ''
-            $thisCommandConsole = $thisCommandConsole -replace '"-Dorg\.gradle\.appname=gradlew"', 'Gradle Task: '
-            $thisCommandConsole = $thisCommandConsole -replace '\s{2,}', ' '
-            $thisCommandConsole = $thisCommandConsole.Trim()
+            $thisCommandConsole = $this.GetInvokeBuildConsoleDescription()
             if ($WhatIF) { Write-Console "$thisCommandConsole" -Title 'WhatIF'}
             else {
                 Write-Console "`"$thisCommandConsole`""  -Title 'Executing'
@@ -266,6 +265,10 @@ class BuildTypeJava : BuildType {
 	[void]PushJAVA_HOME() { if ($this.UseNewJAVA_HOME) { [BuildTypeJava]::PushEnvJava($this.GetJAVA_HOME()) } }
     [void]PopJAVA_HOME()  { if ($this.UseNewJAVA_HOME) { [BuildTypeJava]::PopEnvJava()                      } }
 
+    [string]GetInvokeBuildConsoleDescription(){
+        return "Java: $($this.Command)"
+    }
+
     InvokeInitBuild()               { $this.InvokeInitBuild($false) }
     InvokePreBuild()                { $this.InvokePreBuild($false) }
     InvokeBuild()                   { $this.InvokeBuild($false) }
@@ -298,10 +301,13 @@ class BuildTypeJava : BuildType {
 #################################
 class BuildTypeGradle : BuildTypeJava {
     [string]$JAVA_OPTS
+
     # -DXlint:none to remove Linting warning from showing up at all
-    [string] static $gradlew = 'java "-Dfile.encoding=UTF-8" "-Dsun.stdout.encoding=UTF-8" "-Dsun.stderr.encoding=UTF-8" "-Dorg.gradle.appname=gradlew" -classpath ".\gradle\wrapper\gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain' # -Xmx64m -Xms64m
-    # Changed the following line to above in order to bypass error issues with batch file incompatibilities. Added UTF-8 encoding to reduce compilation warnings
-    # [string] static $gradlew = '.\gradlew.bat'
+    [string[]] static $gradleOptions = @('--no-daemon', '--quiet', '--warning-mode=none', '--console=rich', '-DXdoclint=none', '-DXlint=none')
+
+    # Do not use '.\gradlew.bat' in order to bypass issues with batch file incompatibilities. Added UTF-8 encoding to reduce compilation warnings
+    [string] static $gradlew = 'java "-Dfile.encoding=UTF-8" "-Dsun.stdout.encoding=UTF-8" "-Dsun.stderr.encoding=UTF-8" "-Dorg.gradle.appname=gradlew" -classpath ".\gradle\wrapper\gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain'
+
     BuildTypeGradle() : base('build',$null,$null,$null,'properties','build\libs\*.jar',$true,$null) {}
     BuildTypeGradle([string]$Command,[string]$InitCommand,[string]$PreCommand,[string]$PostCommand,[string]$VersionCommand,[string]$Output,[System.Boolean]$PerformBuild,[string]$JAVA_HOME,[string]$JAVA_OPTS) : base($Command,$InitCommand,$PreCommand,$PostCommand,$VersionCommand,$Output,$PerformBuild,$JAVA_HOME) {
         $this.JAVA_OPTS = $JAVA_OPTS
@@ -312,30 +318,37 @@ class BuildTypeGradle : BuildTypeJava {
         if(-not $Value.Contains('Output')) { $this.Output = 'build\libs\*.jar' }
         if($Value.Contains('JAVA_OPTS')) { $this.JAVA_OPTS = $Value.JAVA_OPTS }
     }
+
+    [string] hidden GetGradleInvokeString([string]$gradleTask) {
+        [string]$gradlewInvokeString = [string]::IsNullOrWhiteSpace($this.JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '^java', "java $($this.JAVA_OPTS)"
+        return "$gradlewInvokeString $gradleTask $($this.gradleOptions -join ' ')"
+    }
+
     [string]GetCommand() {
         [string]$buildCommand = [string]::IsNullOrWhiteSpace($this.Command) ? 'build' : $this.Command
-        [string]$gradlewCommand = [string]::IsNullOrWhiteSpace($this.JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '^java', "java $($this.JAVA_OPTS)"
-        return "$gradlewCommand $buildCommand --no-daemon --quiet --warning-mode=none --console=rich -DXdoclint=none -DXlint=none"
+        return $this.GetGradleInvokeString($buildCommand)
     }
     [string]GetVersion(){ return $this.GetVersion($false) }
     [string]GetVersion([switch]$RawVersion) {
         if([string]::IsNullOrWhiteSpace($this.generatedRawVersion)) {
             [string]$versionCommand = [string]::IsNullOrWhiteSpace($this.VersionCommand) ? 'properties' : $this.VersionCommand
             [string]$return = ''
-            if ($versionCommand -match '^\"(.*)\"$'){
+            if ($versionCommand -match '^(?:\"(.*)\"|\"?(\d+\.\d+\.\d+)\"?)$'){
                 $return = $Matches[1]
             }
             else {
                 $this.CheckGradleInstall()
                 $this.PushJAVA_HOME()
-                #.\gradlew.bat $versionCommand --no-daemon --quiet --warning-mode=none --console=rich)
-                [string]$gradlewCommand = [string]::IsNullOrWhiteSpace($this.JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '^java', "java $($this.JAVA_OPTS)"
+                [string]$gradlewCommand = $this.GetGradleInvokeString($versionCommand) -replace '--console=rich', '--console=plain'
+
                 # --configure-on-demand used to speed up version info by not configuring projects that are not being used.
-                [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand $versionCommand --no-daemon --configure-on-demand --quiet --warning-mode=none --console=plain *>&1")
+                [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand --configure-on-demand *>&1")
+
                 #Sometimes gradle needs to be executed once before it will return without an error, also --configure-on-demand might not work properly.
                 if(($null -ne $tempReturn) -and (($tempReturn -imatch 'A problem occurred configuring root project') -or $tempReturn -imatch 'A problem occurred evaluating project.*')) {
-                    [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand $versionCommand --no-daemon --quiet --warning-mode=none --console=plain *>&1")
+                    [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand *>&1")
                 }
+
                 $this.PopJAVA_HOME()
                 [string]$tempReturn = $null -eq $tempReturn ? 'ERROR CHECKING VERSION' : [System.String]::Join("`r`n",$tempReturn)
                 if ($tempReturn -imatch '(?:^|\r?\n)(full|build|mod_|project|projectBase)[vV]ersion: (?''version''.*)(?:\r?\n|\z|$)') { $return = $Matches['version'] }
@@ -349,6 +362,9 @@ class BuildTypeGradle : BuildTypeJava {
         }
         if ($RawVersion) { return $this.generatedRawVersion }
         else { return $this.generatedCleanVersion }
+    }
+    [string]GetInvokeBuildConsoleDescription() {
+        return "Gradle Task: $($this.Command)"
     }
 
     InvokeInitBuild()               { $this.InvokeInitBuild($false) }
@@ -410,6 +426,10 @@ class BuildTypeMaven : BuildTypeJava {
         }
         if ($RawVersion) { return $this.generatedRawVersion }
         else { return $this.generatedCleanVersion }
+    }
+
+    [string]GetInvokeBuildConsoleDescription() {
+        return "Maven Task: $($this.Command)"
     }
 
     InvokeInitBuild()               { $this.InvokeInitBuild($false) }

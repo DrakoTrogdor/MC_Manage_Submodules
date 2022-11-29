@@ -5,11 +5,13 @@
    "version": "0.2.0",
    "configurations": [
         {
-            "name": "PowerShell Launch Script",
+            "name": "Manage.ps1 Integrated Console",
             "type": "PowerShell",
             "request": "launch",
             "script": "${workspaceFolder}/manage.ps1",
-            "cwd": "${workspaceFolder}/../../"
+            "cwd": "${workspaceFolder}/../../",
+            "createTemporaryIntegratedConsole": true,
+
         },
         {
             "name": ".NET Core Launch (console)",
