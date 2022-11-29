@@ -233,7 +233,7 @@ $dir['SubModuleDependancy'] = Join-Path -Path $dir['Root'] -ChildPath dependenci
 $dir['NodeDependancy'] = Join-Path -Path $dir['Root'] -ChildPath 'node_modules'
 
 ## Output Directories:
-$dir['Server'] = $dir['Root']
+$dir['Server'] = Join-Path -Path $dir['Root'] -ChildPath server-jars
 $dir['Plugin'] = Join-Path -Path $dir['Root'] -ChildPath server-plugins
 $dir['VelocityPlugin'] = Join-Path -Path $dir['Root'] -ChildPath velocity-plugins
 $dir['ServerModule'] = Join-Path -Path $dir['Root'] -ChildPath server-mods
