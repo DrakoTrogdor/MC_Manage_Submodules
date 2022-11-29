@@ -243,7 +243,7 @@ class GitRepo {
             $defaultBranch = (git symbolic-ref refs/remotes/$remote/HEAD) -replace "refs/remotes/$remote/",''
             if ($defaultBranch -ne $headBranch) {
                 [RemoteRepo]$repo = [RemoteRepo]::new()
-                git fetch $remote
+                git fetch $remote --tags --prune --prune-tags --update-head-ok
                 $repo.Name = $remote
                 $repo.URL = $this.GetURL($remote)
                 $repo.DefaultBranch = (git symbolic-ref refs/remotes/$remote/HEAD) -replace "refs/remotes/$remote/",''
@@ -483,7 +483,7 @@ class GitRepo {
             if ($remote -like 'fatal: * does not point to a branch') { $remote = $defaultBranch.Name }
             else { $remote = $remote -replace '/.*$', '' }
             git branch --set-upstream-to=$remote/$returnBranch $returnBranch
-            git fetch --force $remote --quiet
+            git fetch $remote --tags --prune --prune-tags --update-head-ok --write-commit-graph --force --quiet
         }
         else { (git checkout "$($this.LockAtCommit)") }
     }
@@ -504,29 +504,19 @@ class GitRepo {
         [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $remoteOrigin.Name : $this.LockAtCommit
         if ($upstream -eq 'DETATCHED') { $upstream = 'origin' }
         if ($script:WhatIF) {
+            Write-Console "git fetch --all --tags --prune --prune-tags --update-head-ok --write-commit-graph --force" -Title 'WhatIF'
             Write-Console "git fsck --full --strict" -Title 'WhatIF'
             Write-Console "git reflog expire --expire=now --expire-unreachable=now --stale-fix --all" -Title 'WhatIF'
-            Write-Console "git fetch --tags --prune-tags --force" -Title 'WhatIF'
-            $this.RemoteRepos | ForEach-Object {
-                $currentRemote = $_.Name
-                Write-Console "git remote prune $currentRemote" -Title 'WhatIF'
-            }
-            
             Write-Console "git gc --prune=now" -Title 'WhatIF'
             Write-Console "git repack -ad" -Title 'WhatIF'
             Write-Console "git commit-graph write" -Title 'WhatIF'
         }
         else {
+            git fetch --all --tags --prune --prune-tags --update-head-ok --write-commit-graph --force
             git fsck --full --strict
             git reflog expire --expire=now --expire-unreachable=now --stale-fix --all
-            git fetch --tags --prune-tags --force
-            $this.RemoteRepos | ForEach-Object {
-                $currentRemote = $_.Name
-                git remote prune $currentRemote
-            }
             git gc --prune=now
             git repack -ad
-            git commit-graph write
         }
     }
     [void]InvokeRepair() { $this.InvokeRepair($false) }
