@@ -187,7 +187,15 @@ class BuildType {
 
 
         [string]$sep = '[' + [System.Text.RegularExpressions.Regex]::Escape('-+') + ']'
-        [string[]]$removables = @('(?:custom|local|snapshot|nightly)','(?:alpha|beta|dev|fabric|pre|rc|arne)(?:[\.\+\-]?\d+(?=[\.\+\-]|$))*','\d{2}w\d{2}[a-z]','v\d{6,}','[0-9a-f]{7,8}','R\d\.\d','kotlin(?:\.\d+){3}(?:\.local)?')
+        [string[]]$removables = @(
+            'kotlin(?:\.\d+){3}(?:\.local)?',
+            '(?:custom|local|snapshot|nightly)',
+            '(?:alpha|beta|dev|fabric|pre|rc|arne)(?:[\.\+\-]?\d+(?=[\.\+\-]|$))*',
+            '\d{2}w\d{2}[a-z]',
+            'v\d{6,}',
+            '[0-9a-f]{7,8}',
+            'R\d\.\d'
+        )
 		foreach ($item in $removables) {
             [System.Boolean]$matchFound = $false
             do {

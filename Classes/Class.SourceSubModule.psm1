@@ -213,8 +213,8 @@ class SourceSubModule {
                 # Show current values before checking if a build is required
                 $this.Repo.Display()
                 Write-Console "$version" -Title 'Version'
-                Write-Console "`"$($this.RelativePath($Paths['Server'], $(Join-Path -Path $dirCurrentSource -ChildPath $($build.GetOutput()))))`"" -Title 'Copy From'
-                Write-Console "`"$($this.RelativePath($Paths['Server'], $copyToFileFullName))`"" -Title 'Copy To'
+                Write-Console "`"$($this.RelativePath($Paths['Root'], $(Join-Path -Path $dirCurrentSource -ChildPath $($build.GetOutput()))))`"" -Title 'Copy From'
+                Write-Console "`"$($this.RelativePath($Paths['Root'], $copyToFileFullName))`"" -Title 'Copy To'
         
                 if ($build.PerformBuild) {
                     [string]$copyToExistingFilter = '^' + [System.Text.RegularExpressions.Regex]::Escape($copyToFileName) + '(\.disabled|\.backup)*$'
@@ -223,7 +223,7 @@ class SourceSubModule {
                     switch ($build.OutputType) {
                         Script {
                             [string]$copyFromFileName = Join-Path -Path $dirCurrentSource -ChildPath ($build.GetOutput())
-                            if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$Paths['Server'],$WhatIF,$true)) { $updatedFiles += $copyToFileFullName }
+                            if ($this.SafeCopy($copyFromFileName,$copyToFileFullName,$Paths['Root'],$WhatIF,$true)) { $updatedFiles += $copyToFileFullName }
                             break
                         }
                         Other {
@@ -242,12 +242,12 @@ class SourceSubModule {
                                     $renameOldFileFilter = [System.Text.RegularExpressions.Regex]::Escape("$($this.GetFinalName())-") + '.*\-CUSTOM\+.*' + [System.Text.RegularExpressions.Regex]::Escape($build.GetOutputExtension()) + '$'
                                     $renameOldFiles = Get-ChildItem -File -Path $copyToFilePath | Where-Object { $_.Name -match $renameOldFileFilter }
                                     foreach ($renameOldFile in $renameOldFiles) {
-                                        Write-Console "`"$($this.RelativePath($Paths['Server'], $renameOldFile.FullName))`" to `"$($this.RelativePath($Paths['Server'], $renameOldFile.FullName))^fE.disabled^fz`"" -Title 'Renaming'
-                                        if ($WhatIF) { Write-Console "Rename-Item -Path `"$($this.RelativePath($Paths['Server'], $renameOldFile.FullName))`" -NewName `"$($this.RelativePath($Paths['Server'], $renameOldFile.FullName)).disabled`" -Force -EA:0" -Title 'WhatIF'}
+                                        Write-Console "`"$($this.RelativePath($Paths['Root'], $renameOldFile.FullName))`" to `"$($this.RelativePath($Paths['Root'], $renameOldFile.FullName))^fE.disabled^fz`"" -Title 'Renaming'
+                                        if ($WhatIF) { Write-Console "Rename-Item -Path `"$($this.RelativePath($Paths['Root'], $renameOldFile.FullName))`" -NewName `"$($this.RelativePath($Paths['Root'], $renameOldFile.FullName)).disabled`" -Force -EA:0" -Title 'WhatIF'}
                                         else { Rename-Item -Path "$($renameOldFile.FullName)" -NewName "$($renameOldFile.FullName).disabled" -Force -EA:0 }
                                     }
                                     [string]$copyFromFileFullName = ($WhatIF ? '<buildOutputFile>' : $copyFromExistingFiles.FullName)
-                                    if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$Paths['Server'],$WhatIF,$false)) { $updatedFiles += $copyToFileFullName }
+                                    if ($this.SafeCopy($copyFromFileFullName,$copyToFileFullName,$Paths['Root'],$WhatIF,$false)) { $updatedFiles += $copyToFileFullName }
                                     $build.InvokePostBuild($WhatIF)
                                 }
                                 else {
@@ -255,7 +255,7 @@ class SourceSubModule {
                                     $updatedFiles += "ERROR: " + $copyToFileFullName
                                 }
                             }
-                            else { Write-Console "`"^fG$($this.RelativePath($Paths['Server'], ($copyToExistingFiles|Select-Object -First 1).FullName))^fz`" is already up to date." }
+                            else { Write-Console "`"^fG$($this.RelativePath($Paths['Root'], ($copyToExistingFiles|Select-Object -First 1).FullName))^fz`" is already up to date." }
                         }
                     }
                 }

@@ -66,12 +66,19 @@ function LoadManageJSON {
     $stringJsonSchema  = Get-Content -Path $JsonSchemaPath  -Raw
 
     # Test the JSON based on the schema and return an empty SourceSubModule array if there are any error
-    if (Test-Json -Json $stringJsonContent -Schema $stringJsonSchema){
+    if (Test-Json -Json $stringJsonContent -Schema $stringJsonSchema -EA:0){
         # Convert the JSON content string into a JSON object
         [Hashtable]$script:ManageJSON = ConvertFrom-Json -InputObject $stringJsonContent -AsHashtable
     }
     else {
-        [Hashtable]$script:ManageJSON = $null
+        Write-Console "There is an error in the file `"$($dir['Root'])\manage.json`". Please fix it and try again."
+        try {
+            ConvertFrom-Json -InputObject $stringJsonContent -AsHashtable
+        }
+        catch {
+            Write-Console $_.ToString() -Title 'Exception'
+        }
+        exit
     }
 
 
