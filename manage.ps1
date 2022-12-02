@@ -195,26 +195,26 @@ function Show-WhatIfInfo() {
 function Show-DirectoryInfo() {
     Write-Host "$('=' * 120)" -ForegroundColor Green
     Write-Host "Base Directories:" -ForegroundColor Green
-    Write-Host "`tRoot:                 $($dir['Root'])" -ForegroundColor Green
+    Write-Host "`tRoot:                 $(Get-ClickableLink -URL "file://$($dir['Root'])")" -ForegroundColor Green
     Write-Host "Source Directories:" -ForegroundColor Green
-    Write-Host "`tSources:              $($dir['Sources'])" -ForegroundColor Green
-    Write-Host "`tModule Dependancies:  $($dir['SubModuleDependancy'])" -ForegroundColor Green
-    Write-Host "`tNode Dependancies:    $($dir['NodeDependancy'])" -ForegroundColor Green
+    Write-Host "`tSources:              $(Get-ClickableLink -URL "file://$($dir['Sources'])")" -ForegroundColor Green
+    Write-Host "`tModule Dependancies:  $(Get-ClickableLink -URL "file://$($dir['SubModuleDependancy'])")" -ForegroundColor Green
+    Write-Host "`tNode Dependancies:    $(Get-ClickableLink -URL "file://$($dir['NodeDependancy'])")" -ForegroundColor Green
     Write-Host "Output Directories:" -ForegroundColor Green
-    Write-Host "`tServer:               $($dir['Server'])" -ForegroundColor Green
-    Write-Host "`tServer Plugins:       $($dir['Plugin'])" -ForegroundColor Green
-    Write-Host "`tVelocity Plugins:     $($dir['VelocityPlugin'])" -ForegroundColor Green
-    Write-Host "`tServer Mods:          $($dir['ServerModule'])" -ForegroundColor Green
-    Write-Host "`tClient Mods:          $($dir['ClientModule'])" -ForegroundColor Green
-    Write-Host "`tAlternate Mods:       $($dir['AlternateModule'])" -ForegroundColor Green
-    Write-Host "`tData Packs:           $($dir['DataPack'])" -ForegroundColor Green
-    Write-Host "`tResource Packs:       $($dir['ResourcePack'])" -ForegroundColor Green
+    Write-Host "`tServer:               $(Get-ClickableLink -URL "file://$($dir['Server'])")" -ForegroundColor Green
+    Write-Host "`tServer Plugins:       $(Get-ClickableLink -URL "file://$($dir['Plugin'])")" -ForegroundColor Green
+    Write-Host "`tVelocity Plugins:     $(Get-ClickableLink -URL "file://$($dir['VelocityPlugin'])")" -ForegroundColor Green
+    Write-Host "`tServer Mods:          $(Get-ClickableLink -URL "file://$($dir['ServerModule'])")" -ForegroundColor Green
+    Write-Host "`tClient Mods:          $(Get-ClickableLink -URL "file://$($dir['ClientModule'])")" -ForegroundColor Green
+    Write-Host "`tAlternate Mods:       $(Get-ClickableLink -URL "file://$($dir['AlternateModule'])")" -ForegroundColor Green
+    Write-Host "`tData Packs:           $(Get-ClickableLink -URL "file://$($dir['DataPack'])")" -ForegroundColor Green
+    Write-Host "`tResource Packs:       $(Get-ClickableLink -URL "file://$($dir['ResourcePack'])")" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Green
     Write-Host "`tmyGit_URL:            $($script:myGit_URL)" -ForegroundColor Green
     foreach ($item in $global:JAVA_HOME) {
         [int]$spaces = 10 - ([string]($item.Keys[0])).Length
         $spaces = $spaces -gt 0 ? $spaces : 0
-        Write-Host "`tJAVA_HOME($($item.Keys[0])):$(' ' * $spaces)$($item.Values[0])" -ForegroundColor Green
+        Write-Host "`tJAVA_HOME($($item.Keys[0])):$(' ' * $spaces)$(Get-ClickableLink -URL "file://$($item.Values[0])")" -ForegroundColor Green
     }
     Write-Host "`tSubmodules:           $($sources.Count)" -ForegroundColor Green
     Write-Host "$('=' * 120)" -ForegroundColor Green
