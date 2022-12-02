@@ -125,6 +125,21 @@ function UnescapeJSONString {
     $InputString = $InputString.Replace("\\","\") # Backslash
     return $InputString
 }
+function GitCreatePatch {
+    param (
+        [string]$Branch,
+        $LSFilter
+    )
+    [string]$patchFile = ".\" + (new-guid).Guid + ".patch"
+    # $LSFilter in the style of:
+    #    @('*.json', ':(top)*.md', ':/*.md', ':(exclude)*.png', ':!*.png', ':(glob)**/resources/*.txt', '**/resources/*.txt','*.[tj]s', '')
+    $PatchString = (git diff ..$($Branch) --name-only --diff-filter=M -- $($LSFilter)) | 
+    ForEach-Object { git diff --unified=0 --minimal --patch --ignore-cr-at-eol --ignore-space-at-eol --ignore-space-change --ignore-all-space --ignore-blank-lines ..$Branch -- $_ }
+    $PatchString | Out-File -FilePath $patchFile
+    ConvertLineEndingsToLF -Path $patchFile
+    Write-Console "PatchFile Written to `"$patchFile`"" -Title 'Create Patch'
+    return $patchFile
+}
 function GitApplyPatch {
     param (
         [string]$PatchString,
@@ -144,7 +159,7 @@ function GitApplyPatchFile {
         [string]$PatchFile
     )
     Write-Console "Applying GIT patch file $PatchFile"
-    git apply --ignore-space-change --ignore-whitespace $PatchFile
+    git apply --ignore-space-change --ignore-whitespace  --unidiff-zero $PatchFile
 }
 function ReplaceInFile {
     param (

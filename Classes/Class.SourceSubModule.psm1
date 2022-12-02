@@ -123,10 +123,10 @@ class SourceSubModule {
         [switch]$RelativePaths
     ){
         if ($RelativePaths) {
-            Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $($this.RelativePath($DirectoryRoot,(Get-Location)))`r`n$('=' * 120)" -ForegroundColor red
+            Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $(Get-ClickableLink -URL "file://$($this.RelativePath($DirectoryRoot,(Get-Location)))")`r`n$('=' * 120)" -ForegroundColor red
         }
         else {
-            Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $(Get-Location)`r`n$('=' * 120)" -ForegroundColor red
+            Write-Host "$('=' * 120)`r`nName:      $($this.Name)`r`nDirectory: $(Get-ClickableLink -URL "file://$((Get-Location).Path)")`r`n$('=' * 120)" -ForegroundColor red
         }
     }
     InvokeClean(
