@@ -224,7 +224,12 @@ function ExecuteGradleTask {
         $gradlewInvokeString = $gradlewInvokeString -replace '--console=\w+', ''
         $gradlewInvokeString += '--console=plain'
     }
-    if (!$Quiet) { Write-Console "Gradle Task: $GradleTask" -Title "Executing" }
-    $currentProcess = Start-Process -FilePath "$env:ComSpec" -ArgumentList "/c $gradlewInvokeString" -NoNewWindow -PassThru
-    $currentProcess.WaitForExit()
+    if ($Quiet) {
+        return (Invoke-Expression -Command "$gradlewInvokeString")
+    }
+    else {
+        Write-Console "Gradle Task: $GradleTask" -Title "Executing"
+        $currentProcess = Start-Process -FilePath "$env:ComSpec" -ArgumentList "/c $gradlewInvokeString" -NoNewWindow -PassThru
+        $currentProcess.WaitForExit()
+    }
 }
