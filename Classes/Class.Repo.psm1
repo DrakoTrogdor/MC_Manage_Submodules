@@ -545,6 +545,7 @@ class GitRepo {
                     if ([string]::IsNullOrWhiteSpace($tmpBranch)) {
                         $this.InvokeCheckout()
                     }
+                    git fetch --all --tags --prune --prune-tags --force
                     git pull
                 }
                 else { (git checkout "$($this.LockAtCommit)") }

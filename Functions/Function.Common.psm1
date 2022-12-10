@@ -32,7 +32,42 @@ function BuildSpigot {
         if ($Remapped) {
             $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT --remapped --output-dir Build" -NoNewWindow -PassThru
         } else {
-            $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT --output-dir Build" -NoNewWindow -PassThru
+            if ($Version -like '1.16.2') {
+                
+                # Clone all repositories
+                $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile NONE --output-dir Build" -NoNewWindow -PassThru
+                $javaProcess.WaitForExit()
+                
+                # Create RegEx search and replacement strings
+                $searchString = '\s*<dependency>[\r\n]+\s*<groupId>org\.ow2\.asm</groupId>[\r\n]+\s*<artifactId>asm-tree</artifactId>[\r\n]+\s*<version>8\.0\.1</version>[\r\n]+\s*<scope>test</scope>[\r\n]+\s*</dependency>[\r\n]+'
+                $replaceString = @'
+
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+            <version>8.0.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-tree</artifactId>
+            <version>8.0.1</version>
+            <scope>test</scope>
+        </dependency>
+
+'@
+                # Add dependencies to all pom.xml files based on RegEx search and replace
+                Get-ChildItem -Filter pom.xml -Recurse | 
+                ForEach-Object {
+                    ReplaceInFile -SearchRegExp $searchString -ReplaceString $replaceString -File $_.FullName
+                }
+            
+                # Continue with compilation.
+                $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --dont-update --compile CRAFTBUKKIT,SPIGOT --output-dir Build" -NoNewWindow -PassThru
+            }
+            else {
+                $javaProcess = Start-Process -FilePath "$javaCommand" -ArgumentList "-jar $ToolPath\\BuildTools.jar --rev $Version --compile CRAFTBUKKIT,SPIGOT --output-dir Build" -NoNewWindow -PassThru
+            }
         }
         $javaProcess.WaitForExit()
         [BuildTypeJava]::PopEnvJava()
