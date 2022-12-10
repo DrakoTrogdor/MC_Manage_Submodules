@@ -213,18 +213,18 @@ function ReplaceInFile {
 }
 function ExecuteGradleTask {
     param (
-        [string]$gradleTask,
+        [string]$GradleTask,
         [Parameter(Mandatory=$false)][string]$JAVA_OPTS,
-        [Parameter(Mandatory=$false)][Switch]$plainText,
+        [Parameter(Mandatory=$false)][Switch]$PlainText,
         [Parameter(Mandatory=$false)][Switch]$Quiet
     )
     [string]$gradlewInvokeString = [string]::IsNullOrWhiteSpace($JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '(java(?:.exe)?[''"]?)', "`$1 $JAVA_OPTS"
-    $gradlewInvokeString += " $gradleTask $([BuildTypeGradle]::gradleOptions -join ' ')"
-    if ($plainText) {
+    $gradlewInvokeString += " $GradleTask $([BuildTypeGradle]::gradleOptions -join ' ')"
+    if ($PlainText) {
         $gradlewInvokeString = $gradlewInvokeString -replace '--console=\w+', ''
-        $gradlewInvokeString = '--console=plain'
+        $gradlewInvokeString += '--console=plain'
     }
-    if (!$Quiet) { Write-Console "Gradle Task: $gradleTask" -Title "Executing" }
+    if (!$Quiet) { Write-Console "Gradle Task: $GradleTask" -Title "Executing" }
     $currentProcess = Start-Process -FilePath "$env:ComSpec" -ArgumentList "/c $gradlewInvokeString" -NoNewWindow -PassThru
     $currentProcess.WaitForExit()
 }
