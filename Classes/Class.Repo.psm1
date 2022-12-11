@@ -547,6 +547,7 @@ class GitRepo {
                     }
                     git fetch --all --tags --prune --prune-tags --force
                     git pull
+                    git submodule update --checkout --recursive
                 }
                 else { (git checkout "$($this.LockAtCommit)") }
             }

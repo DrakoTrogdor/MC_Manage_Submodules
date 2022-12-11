@@ -184,6 +184,8 @@ class SourceSubModule {
         }
 
         if ($missingSomeOutputCommits) {
+            # Show the last five commits
+            git -c color.ui=always log --oneline --pretty='format:%C(yellow)%h %C(bold green)%cd%C(auto)%d %s' --date=relative -5 | Write-Console -Title 'Changes'
             foreach ($build in $this.Builds) {
                 $build.InvokeInitBuild($WhatIF)
 
