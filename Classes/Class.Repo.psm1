@@ -243,7 +243,7 @@ class GitRepo {
             $defaultBranch = (git symbolic-ref refs/remotes/$remote/HEAD) -replace "refs/remotes/$remote/",''
             if ($defaultBranch -ne $headBranch) {
                 [RemoteRepo]$repo = [RemoteRepo]::new()
-                git fetch $remote --tags --prune --prune-tags --update-head-ok
+                git fetch $remote --prune --update-head-ok --write-commit-graph --force --quiet
                 $repo.Name = $remote
                 $repo.URL = $this.GetURL($remote)
                 $repo.DefaultBranch = (git symbolic-ref refs/remotes/$remote/HEAD) -replace "refs/remotes/$remote/",''
@@ -504,7 +504,7 @@ class GitRepo {
         [string]$upstream = [string]::IsNullOrWhiteSpace($this.LockAtCommit) ? $remoteOrigin.Name : $this.LockAtCommit
         if ($upstream -eq 'DETATCHED') { $upstream = 'origin' }
         if ($script:WhatIF) {
-            Write-Console "git fetch --all --tags --prune --prune-tags --update-head-ok --write-commit-graph --force" -Title 'WhatIF'
+            Write-Console "git fetch --all --prune --update-head-ok --write-commit-graph --force" -Title 'WhatIF'
             Write-Console "git fsck --full --strict" -Title 'WhatIF'
             Write-Console "git reflog expire --expire=now --expire-unreachable=now --stale-fix --all" -Title 'WhatIF'
             Write-Console "git gc --prune=now" -Title 'WhatIF'
@@ -512,7 +512,10 @@ class GitRepo {
             Write-Console "git commit-graph write" -Title 'WhatIF'
         }
         else {
-            git fetch --all --tags --prune --prune-tags --update-head-ok --write-commit-graph --force
+            #                --tags --prune --prune-tags --update-head-ok --write-commit-graph --force --quiet
+            git tag --list | ForEach-Object { git tag --delete $_ }
+            git fetch --all --no-tags --prune --update-head-ok --write-commit-graph --no-recurse-submodules --force
+            git fetch --recurse-submodules --force
             git fsck --full --strict
             git reflog expire --expire=now --expire-unreachable=now --stale-fix --all
             git gc --prune=now
@@ -545,7 +548,8 @@ class GitRepo {
                     if ([string]::IsNullOrWhiteSpace($tmpBranch)) {
                         $this.InvokeCheckout()
                     }
-                    git fetch --all --tags --prune --prune-tags --force
+                    git fetch --tags --prune --prune-tags --update-head-ok --write-commit-graph --no-recurse-submodules --force
+                    git fetch --recurse-submodules
                     git pull
                     git submodule update --checkout --recursive
                 }
