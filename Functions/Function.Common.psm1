@@ -163,13 +163,17 @@ function UnescapeJSONString {
 function GitCreatePatch {
     param (
         [string]$Branch,
-        $LSFilter
+        $LSFilter,
+        [Parameter(Mandatory=$false)][Switch]$IgnoreIndexMode
     )
     [string]$patchFile = ".\" + (new-guid).Guid + ".patch"
     # $LSFilter in the style of:
     #    @('*.json', ':(top)*.md', ':/*.md', ':(exclude)*.png', ':!*.png', ':(glob)**/resources/*.txt', '**/resources/*.txt','*.[tj]s', '')
-    $PatchString = (git diff ..$($Branch) --name-only --diff-filter=M -- $($LSFilter)) | 
-    ForEach-Object { git diff --unified=0 --minimal --patch --ignore-cr-at-eol --ignore-space-at-eol --ignore-space-change --ignore-all-space --ignore-blank-lines ..$Branch -- $_ }
+    $PatchString = (git diff $Branch --name-only --diff-filter=M -- $($LSFilter)) | 
+    ForEach-Object { git diff --unified=0 --minimal --patch --ignore-blank-lines --ignore-all-space --ignore-cr-at-eol $Branch -- $_ }
+    if ($IgnoreIndexMode) { 
+        $PatchString = $PatchString | Select-String -NotMatch '^index [a-f0-9]{6,}(?:,[a-f0-9]{6,})*\.\.[a-f0-9]{6,} 100644$'
+    }
     $PatchString | Out-File -FilePath $patchFile
     ConvertLineEndingsToLF -Path $patchFile
     Write-Console "PatchFile Written to `"$patchFile`"" -Title 'Create Patch'
