@@ -322,7 +322,8 @@ do { # Main loop
         'Repositories - Reset',
         'Repositories - Repair',
         'Repositories - Commit',
-        'Build - Get Versions',
+        'Build - Get One Version',
+        'Build - Get All Versions',
         'Build - Compile One',
         'Build - Compile All',
         'Configuration - Reload Generic',
@@ -601,7 +602,21 @@ do { # Main loop
             PressAnyKey
             break
         }
-        'Build - Get Versions'{
+        'Build - Get One Version'{
+            Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
+            $currentSource = Show-Choices -Title 'Select an action' -List $sources -ExitPath $dir['Startup']
+            $dirCurrent = Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name
+            Set-Location -Path $dirCurrent
+            $currentSource.DisplayHeader($dir['Root'])
+            foreach ($build in $currentSource.Builds) {
+                $build.InvokeInitBuild()
+                Write-Host "`tRaw Version  : $($build.GetVersion($true))"
+                Write-Host "`tClean Version: $($build.GetVersion())"
+            }
+            PressAnyKey
+            break
+        }
+        'Build - Get All Versions'{
             Push-Location -Path $dir['Sources'] -StackName 'MainLoop'
             foreach ( $currentSource in $sources ) {
                 $dirCurrent = Join-Path -Path $dir['Sources'] -ChildPath $currentSource.Name

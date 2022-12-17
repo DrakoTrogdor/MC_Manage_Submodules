@@ -193,7 +193,7 @@ class BuildType {
             '(?:alpha|beta|dev|fabric|pre|rc|arne)(?:[\.\+\-]?\d+(?=[\.\+\-]|$))*',
             '\d{2}w\d{2}[a-z]',
             'v\d{6,}',
-            '[0-9a-f]{7,8}',
+            '(?:rev\.)?[0-9a-f]{7,8}',
             'R\d\.\d'
         )
 		foreach ($item in $removables) {
