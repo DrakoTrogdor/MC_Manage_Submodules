@@ -190,7 +190,7 @@ class BuildType {
         [string[]]$removables = @(
             'kotlin(?:\.\d+){3}(?:\.local)?',
             '(?:custom|local|snapshot|nightly)',
-            '(?:alpha|beta|dev|fabric|pre|rc|arne)(?:[\.\+\-]?\d+(?=[\.\+\-]|$))*',
+            '(?:alpha|beta|dev|fabric|pre|rc|arne)(?:[\.\+\-]?(?:\d+|null)(?=[\.\+\-]|$))*',
             '\d{2}w\d{2}[a-z]',
             'v\d{6,}',
             '(?:rev\.)?[0-9a-f]{7,8}',

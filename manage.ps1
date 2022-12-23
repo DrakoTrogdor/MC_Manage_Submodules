@@ -282,10 +282,12 @@ function CleanRootFolder {
     ## Output Folders
     $cleanArguments += @('-e','alt-mods/')
     $cleanArguments += @('-e','client-mods/')
+    $cleanArguments += @('-e','server-jars/')
     $cleanArguments += @('-e','server-mods/')
     $cleanArguments += @('-e','server-plugins/')
     $cleanArguments += @('-e','velocity-plugins/')
     $cleanArguments += @('-e','datapacks/')
+    $cleanArguments += @('-e','resourcepacks/')
 
     ## Other Folders
     $cleanArguments += @('-e','backups/')
