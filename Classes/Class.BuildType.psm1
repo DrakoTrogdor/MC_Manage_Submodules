@@ -389,14 +389,13 @@ class BuildTypeGradle : BuildTypeJava {
 
     [void] hidden CheckGradleInstall(){
         if (-not (Test-Path -Path '.\gradlew.bat')) {
-            $GradleBuild = 'gradle-7.1-rc-2'
-            $url = "https://services.gradle.org/distributions/$($GradleBuild)-bin.zip"
-            #$url = 'https://services.gradle.org/distributions/gradle-6.6-bin.zip'
+            $GradleBuild = '7.6'
+            $url = "https://services.gradle.org/distributions/gradle-$($GradleBuild)-bin.zip"
             $file = Split-Path -Path "$url" -Leaf
             Invoke-WebRequest -Uri $url -OutFile $file
             Expand-Archive -Path $file -DestinationPath .
             $this.PushJAVA_HOME()
-            Invoke-Expression ".\$($GradleBuild)\bin\gradle.bat wrapper --no-daemon"
+            Invoke-Expression ".\gradle-$($GradleBuild)\bin\gradle.bat wrapper --no-daemon"
             $this.PopJAVA_HOME()
         }
     }

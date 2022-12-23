@@ -235,5 +235,6 @@ function ExecuteGradleTask {
         Write-Console "Gradle Task: $GradleTask" -Title "Executing"
         $currentProcess = Start-Process -FilePath "$env:ComSpec" -ArgumentList "/c $gradlewInvokeString" -NoNewWindow -PassThru
         $currentProcess.WaitForExit()
+        Stop-Process $currentProcess -ErrorAction SilentlyContinue
     }
 }
