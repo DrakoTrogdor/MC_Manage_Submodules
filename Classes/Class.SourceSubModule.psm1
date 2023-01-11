@@ -267,6 +267,8 @@ class SourceSubModule {
         else {
             Write-Console "All outputs for commit `"^fG$($commit)^fz`" already exist."
         }
+        # TODO Gradle refuses to close properly afterwards, check on this later to see if it's still the case
+        Get-Process | Where-Object { $_.Name -like 'java' -and $_.CommandLine -match '.*(?:Gradle(?:Worker|Daemon)|kotlin-compiler-embeddable).*' } | Stop-Process -Verbose
         return $updatedFiles
     }
 }
