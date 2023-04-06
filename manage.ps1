@@ -211,6 +211,15 @@ function Show-DirectoryInfo() {
     Write-Host "`tResource Packs:       $(Get-ClickableLink -URL "file://$($dir['ResourcePack'])")" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Green
     Write-Host "`tmyGit_URL:            $($script:myGit_URL)" -ForegroundColor Green
+    $currentProcesses = (Get-Process | Where-Object { $_.Name -like 'java' -and $_.CommandLine -match '.*(?:Gradle(?:Worker|Daemon)|kotlin-compiler-embeddable).*' } )
+    $currentProcesses | ForEach-Object {
+        if (HasParentProcess -Process $_ -TargetProcessName 'idea64') {
+            Write-Host "$_.ProcessName IS Idea64"
+        }
+        else {
+            Write-Host "$_.ProcessName is NOT Idea64"
+        }
+    }
     foreach ($item in $global:JAVA_HOME) {
         [int]$spaces = 10 - ([string]($item.Keys[0])).Length
         $spaces = $spaces -gt 0 ? $spaces : 0

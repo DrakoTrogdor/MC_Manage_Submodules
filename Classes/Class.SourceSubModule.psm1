@@ -268,25 +268,12 @@ class SourceSubModule {
             Write-Console "All outputs for commit `"^fG$($commit)^fz`" already exist."
         }
         # TODO Gradle refuses to close properly afterwards, check on this later to see if it's still the case
-        $currentProcesses = (Get-Process | Where-Object { $_.Name -like 'java' -and $_.CommandLine -match '.*(?:Gradle(?:Worker|Daemon)|kotlin-compiler-embeddable).*' } )
-        $currentProcesses | ForEach-Object {
-            if (HasParentProcess($_,'idea64') -eq $false) {
-                $_ | Stop-Process -Verbose
+        Get-Process | 
+            Where-Object { $_.Name -like 'java' -and $_.CommandLine -match '.*(?:Gradle(?:Worker|Daemon)|kotlin-compiler-embeddable).*' } | 
+            ForEach-Object {
+                if (HasParentProcess -Process $_ -TargetProcessName 'idea64') { "Ignoring $($_.ProcessName) ($($_.ID))"}
+                else { $_ | Stop-Process -Verbose }
             }
-        }
         return $updatedFiles
-    }
-    [System.Boolean]HasParentProcess($process, [string]$targetProcessName) {
-        if (-not $process) {
-            return $false
-        }
-    
-        $parentProcess = $process.Parent
-    
-        if ($parentProcess.ProcessName -eq $targetProcessName) {
-            return $true
-        } else {
-            return HasParentProcess $parentProcess $targetProcessName
-        }
     }
 }

@@ -238,3 +238,27 @@ function ExecuteGradleTask {
         Stop-Process $currentProcess -ErrorAction SilentlyContinue
     }
 }
+
+function HasParentProcess {
+    param (
+        [PSCustomObject]$Process,
+        [string]$TargetProcessName
+    )
+    if (-not $process) {
+        # FALSE - No Process
+        return $false
+    }
+    $parentProcess = $process.Parent
+    if ($parentProcess.ProcessName -like $targetProcessName) {
+        # TRUE - ProcessName == $targetProcessName
+        return $true
+    }
+    elseif ([string]::IsNullOrEmpty($parentProcess.ProcessName)) {
+       # FALSE - ProcessName == Null or Empty
+       return $false
+    }
+    else {
+        # DIVE - ProcessName != $targetProcessName
+        return HasParentProcess -Process $parentProcess -TargetProcessName $targetProcessName
+    }
+}
