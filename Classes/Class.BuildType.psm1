@@ -212,17 +212,25 @@ class BuildType {
         # Everything was removed by the "removables" foreach loop
         if ($return -like '-') { return '0.0.0' }
 
+
         [string]$mcVer  = "(?:mc)?1\.(?:19(?:\.[0-4xX])?|20(?:\.[0-1xX])?)(?!\.\d+)(?:\.?[0-9a-f]{7,8})?" #This matches the versions from 1.19 to 1.20.1 (Optional 7 to 8 digit commit'ish)
         [string]$semVer = "v?(?<![\dxX]\.)(?:\d+\.){0,3}(?:\d+|[xX])(?!\.(\d+|[xX]))" # Version like number (allow extra digit in semver)
-
+    
         # If all that is left is an MC version and a single digit version format it as MCVersion.Version
-        if ($return -imatch "^\s*(?'mcVer'$($mcVer))$($sep)v?(?'buildVer'\d+)\s*$") { $return = "$($Matches['mcVer']).$($Matches['buildVer'])" }
+        if ($return -imatch "^\s*(?'mcVer'$($mcVer))$($sep)v?(?'buildVer'\d+)\s*$") {
+            [string]$returnedMCVer = "$($Matches['mcVer'])"
+            [string]$returnedBuild = "$($Matches['buildVer'])"
+            if ($returnedMCVer -imatch "^\s*v?0*(?'major'\d+)\s*$")                                   { $returnedMCVer = "$($Matches['major']).0.0" }
+            if ($returnedMCVer -imatch "^\s*v?0*(?'major'\d+)\.0*(?'minor'\d+)\s*$")                  { $returnedMCVer = "$($Matches['major']).$($Matches['minor']).0" }
+            if ($returnedMCVer -imatch "^\s*v?0*(?'major'\d+)\.0*(?'minor'\d+)\.0*(?'patch'\d+)\s*$") { $returnedMCVer = "$($Matches['major']).$($Matches['minor']).$($Matches['patch'])" }
+            $return = "$returnedMCVer.$returnedBuild"
+        }
 
         # Remove MC version if both an MC version and submodule version exist
         if ($return -imatch "^\s*$($mcVer)$($sep)(?'match'$($semVer))\s*$") { $return = "$($Matches['match'])" }
         if ($return -imatch "^\s*(?'match'$($semVer))$($sep)$($mcVer)\s*$") { $return = "$($Matches['match'])" }
 
-        # Format as proper semver (allow for a build number if it exists)
+        # Format as proper semver (allow for an extra build number if it exists)
         if ($return -imatch "^\s*v?0*(?'major'\d+)\s*$")                                                    { $return = "$($Matches['major']).0.0" }
 		if ($return -imatch "^\s*v?0*(?'major'\d+)\.0*(?'minor'\d+)\s*$")                                   { $return = "$($Matches['major']).$($Matches['minor']).0" }
         if ($return -imatch "^\s*v?0*(?'major'\d+)\.0*(?'minor'\d+)\.0*(?'patch'\d+)\s*$")                  { $return = "$($Matches['major']).$($Matches['minor']).$($Matches['patch'])" }
