@@ -338,7 +338,7 @@ class BuildTypeGradle : BuildTypeJava {
 
     [string] hidden GetGradleInvokeString([string]$gradleTask) {
         [string]$gradlewInvokeString = [string]::IsNullOrWhiteSpace($this.JAVA_OPTS) ? $([BuildTypeGradle]::gradlew) : $([BuildTypeGradle]::gradlew) -replace '^java', "java $($this.JAVA_OPTS)"
-        return "$gradlewInvokeString $gradleTask $($this.gradleOptions -join ' ')"
+        return "$gradlewInvokeString $gradleTask $([BuildTypeGradle]::gradleOptions -join ' ')".Trim()
     }
 
     [string]GetCommand() {
