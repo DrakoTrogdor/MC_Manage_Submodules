@@ -20,7 +20,7 @@
             "required": ["version","path"],
             "additionalProperties": false,
             "properties": {
-                "version": { "type": "integer", "enum": [8,9,10,11,12,13,14,15,16,17] },
+                "version": { "type": "integer", "enum": [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22] },
                 "path":    { "type": "string" }
             }
         },
@@ -41,7 +41,8 @@
                 "18": { "type": "string" },
                 "19": { "type": "string" },
                 "20": { "type": "string" },
-                "21": { "type": "string" }
+                "21": { "type": "string" },
+                "22": { "type": "string" }
              }
         },
         "typeBuildType":{
