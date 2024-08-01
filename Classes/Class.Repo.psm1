@@ -65,6 +65,7 @@ class RemoteRepo {
             else { $tmpBranches.Add([BranchDetails]::new($this.Name, '', '')) }
         }
         else {
+            [string]$currentBranch = (git branch --show-current) # Retrieve the name of the current branch
             [string]$branchIgnoreRegex = '.*(' + (($this.IgnoreBranches.Where({$_ -notmatch '^\s*$'}).ForEach({$_.Trim()})) -join '|') +').*'
             if ($branchIgnoreRegex -eq '.*().*') { $branchIgnoreRegex = '^$' }
             [string[]]$lsRemoteHeads = git ls-remote --heads $this.Name
@@ -72,7 +73,7 @@ class RemoteRepo {
                 if ($item -match '^(?<commit>[a-fA-F0-9]+)\s+refs/heads/(?<branch>.*)$') {
                     [string]$tmpBranch = $Matches.branch
                     [string]$tmpCommit = $Matches.commit
-                    if ($tmpBranch -notmatch $branchIgnoreRegex) {
+                    if ($tmpBranch -eq $currentBranch -or $tmpBranch -notmatch $branchIgnoreRegex) {
                         if (((git rev-list $tmpCommit -n 1 --date=unix --pretty=format:"%cd") -join "`r`n") -match '(?ms)(?:^commit (?<commit>[a-f0-9]+)\s*(?:(?<time>\d+))$)' ) {
                             $tmpBranches.Add([BranchDetails]::new($tmpBranch, $tmpCommit, $Matches.time))
                         }
