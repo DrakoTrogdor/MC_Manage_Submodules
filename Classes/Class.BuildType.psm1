@@ -362,7 +362,7 @@ class BuildTypeGradle : BuildTypeJava {
                 [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand --configure-on-demand *>&1")
 
                 #Sometimes gradle needs to be executed once before it will return without an error, also --configure-on-demand might not work properly.
-                if(($null -ne $tempReturn) -and (($tempReturn -imatch 'A problem occurred configuring root project') -or $tempReturn -imatch 'A problem occurred evaluating project.*')) {
+                if(($null -ne $tempReturn) -and ($tempReturn -imatch 'A problem occurred (:?configuring|evaluating).*project.*')) {
                     [Object[]]$tempReturn  = (Invoke-Expression -Command "$gradlewCommand *>&1")
                 }
 
