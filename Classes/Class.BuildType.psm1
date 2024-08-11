@@ -213,7 +213,7 @@ class BuildType {
         if ($return -like '-') { return '0.0.0' }
 
 
-        [string]$mcVer  = "(?:mc)?1\.(?:19(?:\.[0-4xX])?|20(?:\.[0-6xX])?|21(?:\.[0-0xX])?)(?!\.\d+)(?:\.?[0-9a-f]{7,8})?" #This matches the versions from 1.19 to 1.21 (Optional 7 to 8 digit commit'ish)
+        [string]$mcVer  = "(?:mc)?1\.(?:19(?:\.[0-4xX])?|20(?:\.[0-6xX])?|21(?:\.[0-1xX])?)(?!\.\d+)(?:\.?[0-9a-f]{7,8})?" #This matches the versions from 1.19 to 1.21 (Optional 7 to 8 digit commit'ish)
         [string]$semVer = "v?(?<![\dxX]\.)(?:\d+\.){0,3}(?:\d+|[xX])(?!\.(\d+|[xX]))" # Version like number (allow extra digit in semver)
     
         # If all that is left is an MC version and a single digit version format it as MCVersion.Version
